@@ -13,41 +13,44 @@
   <button onclick="registrar()">Registrar</button>
 
   <script>
-    const endpoint = "https://v1.nocodeapi.com/xenredda/google_sheets/MjJDqobKrGjOSDWV?tabId=Hoja1"; // Pega aquí tu URL de NoCodeAPI
+  const endpoint = "https://v1.nocodeapi.com/xenredda/google_sheets/MjJDqobKrGjOSDWV?tabId=Hoja1";
 
-    async function registrar() {
-      const fecha = document.getElementById("fecha").value;
-      const horas = parseFloat(document.getElementById("horas").value);
+  async function registrar() {
+    const fecha = document.getElementById("fecha").value;
+    const horas = document.getElementById("horas").value;
 
-      if (!fecha || isNaN(horas)) {
-        alert("Por favor, completa ambos campos.");
-        return;
-      }
-
-      const body = {
-        values: [[fecha, horas]]
-      };
-
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(body)
-        });
-
-        if (response.ok) {
-          alert("Horas registradas correctamente");
-          document.getElementById("fecha").value = "";
-          document.getElementById("horas").value = "";
-        } else {
-          alert("Error al registrar horas: " + response.statusText);
-        }
-      } catch (error) {
-        alert("Error de conexión: " + error.message);
-      }
+    if (!fecha || !horas) {
+      alert("Por favor completa ambos campos.");
+      return;
     }
-  </script>
+
+    const body = {
+      values: [[fecha, parseFloat(horas)]]
+    };
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (response.ok) {
+        alert("Horas registradas correctamente");
+        document.getElementById("fecha").value = "";
+        document.getElementById("horas").value = "";
+      } else {
+        const errorText = await response.text();
+        console.error("Respuesta del servidor:", errorText);
+        alert("Error al registrar horas:\n" + errorText);
+      }
+    } catch (error) {
+      alert("Error de conexión: " + error.message);
+    }
+  }
+</script>
+
 </body>
 </html>
