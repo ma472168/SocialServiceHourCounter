@@ -223,6 +223,58 @@
             font-size: 1.5rem;
         }
 
+        /* Estilos para la nueva sección "Agregado Recientemente" */
+        .recent-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .recent-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .recent-item:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        .recent-item:hover {
+            background-color: #f0f7ff;
+        }
+
+        .recent-details {
+            flex: 1;
+        }
+
+        .recent-date {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .recent-note {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .recent-hours {
+            font-weight: bold;
+            color: #3498db;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
         @media (max-width: 768px) {
             .stats-container {
                 flex-direction: column;
@@ -230,6 +282,15 @@
 
             .stat-card {
                 min-width: 100%;
+            }
+
+            .recent-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            .recent-hours {
+                text-align: left;
             }
         }
     </style>
@@ -299,7 +360,18 @@
                     <h3>Registros por Día de la Semana</h3>
                     <canvas id="diasSemanaChart"></canvas>
                 </div>
-                </div>
+            </div>
+        </div>
+
+        <div class="card" id="recent-records-card">
+            <div class="card-header no-toggle">
+                🕒 Agregado Recientemente
+            </div>
+            <div class="card-content">
+                <ul id="lista-recientes" class="recent-list">
+                    <li class="empty-message">No hay registros recientes.</li>
+                </ul>
+            </div>
         </div>
 
     </div>
@@ -329,6 +401,9 @@
         // Referencias para las gráficas
         let horasChartInstance = null;
         let diasSemanaChartInstance = null;
+
+        // Referencia para la lista de recientes
+        const listaRecientesUL = document.getElementById('lista-recientes');
 
         // =========================================================================
         // Constantes de Periodo de Servicio Social (copiadas del main.html)
@@ -483,6 +558,9 @@
             // Renderizar gráficas
             renderizarGraficaHoras(totalHoras, horasRestantes);
             renderizarGraficaDiasSemana(horasPorDiaSemana);
+            
+            // Renderizar registros recientes
+            renderizarRegistrosRecientes();
         }
 
         // =========================================================================
@@ -586,6 +664,45 @@
             });
         }
 
+        // =========================================================================
+        // Funciones para Registros Recientes
+        // =========================================================================
+        function renderizarRegistrosRecientes() {
+            // Ordenar todos los registros por fecha (más reciente primero)
+            const registrosOrdenados = [...todosLosRegistros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            // Tomar solo los últimos N registros (N=3 en este caso)
+            const ultimosRegistros = registrosOrdenados.slice(0, 3); // Cambia 3 por 2 si quieres solo 2
+
+            listaRecientesUL.innerHTML = ""; // Limpiar la lista actual
+
+            if (ultimosRegistros.length === 0) {
+                listaRecientesUL.innerHTML = '<li class="empty-message">No hay registros recientes.</li>';
+                return;
+            }
+
+            ultimosRegistros.forEach(registro => {
+                const li = document.createElement("li");
+                li.className = "recent-item";
+
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'short', // Lunes, Mar, etc.
+                    month: 'short',   // Jun, Jul, etc.
+                    day: 'numeric'    // 10, 12, etc.
+                });
+
+                li.innerHTML = `
+                    <div class="recent-details">
+                        <div class="recent-date">${fechaFormateada}</div>
+                        <div class="recent-note">${registro.nota || "Sin descripción"}</div>
+                    </div>
+                    <div class="recent-hours">${registro.horas.toFixed(1)} hrs</div>
+                `;
+                listaRecientesUL.appendChild(li);
+            });
+        }
+
 
         // =========================================================================
         // Inicialización
@@ -594,6 +711,7 @@
             // Asegurarse de que las tarjetas de estadísticas y gráficas estén activas
             document.getElementById('stats-card').classList.add('active');
             document.getElementById('charts-card').classList.add('active');
+            document.getElementById('recent-records-card').classList.add('active'); // Activar la nueva tarjeta
 
             // Cargar datos y actualizar la vista cuando la página se carga
             await cargarDatosDesdeLaNube();
