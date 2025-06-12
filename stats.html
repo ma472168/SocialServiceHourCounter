@@ -366,8 +366,7 @@
                         <span class="stat-value" id="dias-registrados">Cargando...</span>
                     </div>
                     <div class="stat-card stat-promedio">
-                        <span class="stat-title">Prom. horas/día (Registrado)</span>
-                        <span class="stat-value" id="promedio-horas">Cargando...</span>
+                        <span class="stat-title">Prom. horas/día (a cumplir)</span> <span class="stat-value" id="promedio-horas">Cargando...</span>
                     </div>
                     <div class="stat-card stat-validos">
                         <span class="stat-title">Días válidos restantes</span>
@@ -401,8 +400,7 @@
                     <canvas id="diasSemanaChart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Promedio de Horas por Día de la Semana</h3>
-                    <canvas id="promedioDiasSemanaChart"></canvas>
+                    <h3>Promedio de Horas por Día de la Semana (Registrado)</h3> <canvas id="promedioDiasSemanaChart"></canvas>
                 </div>
             </div>
         </div>
@@ -453,7 +451,7 @@
         const horasRegistradasSpan = document.getElementById('horas-registradas');
         const horasRestantesSpan = document.getElementById('horas-restantes');
         const diasRegistradosSpan = document.getElementById('dias-registrados');
-        const promedioHorasSpan = document.getElementById('promedio-horas');
+        const promedioHorasSpan = document.getElementById('promedio-horas'); // Este es el que se usa para 'a cumplir'
         const diasValidosRestantesSpan = document.getElementById('dias-validos-restantes');
         const porcentajeProgresoSpan = document.getElementById('porcentaje-progreso');
         const barraProgresoDiv = document.getElementById('barra-progreso');
@@ -461,7 +459,7 @@
         // Referencias para las gráficas
         let horasChartInstance = null;
         let diasSemanaChartInstance = null;
-        let promedioDiasSemanaChartInstance = null; // Nueva instancia para la gráfica de promedio
+        let promedioDiasSemanaChartInstance = null; // Instancia para la gráfica de promedio por día de la semana
 
         // Referencia para la lista de recientes
         const listaRecientesUL = document.getElementById('lista-recientes');
@@ -560,12 +558,36 @@
                 totalHoras += horas;
                 fechasUnicas.add(registro.fecha);
 
-                // Calcular horas y conteo por día de la semana
+                // Calcular horas y conteo por día de la semana para la gráfica de promedio
                 const fechaObj = new Date(registro.fecha + 'T00:00:00');
                 const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
                 horasPorDiaSemana[diaSemana] += horas;
-                conteoDiasPorSemana[diaSemana]++;
+                // Usamos un Set para contar días únicos de registro por día de la semana
+                // para evitar que múltiples registros en el mismo día influyan en el promedio diario de ese día
+                const fechaDiaSemanaKey = `${registro.fecha}-${diaSemana}`;
+                if (!fechasUnicasPorDiaSemana[diaSemana].has(fechaDiaSemanaKey)) {
+                    conteoDiasPorSemana[diaSemana]++;
+                    fechasUnicasPorDiaSemana[diaSemana].add(fechaDiaSemanaKey);
+                }
             });
+
+            // Re-inicializamos el Set de fechas únicas por día de la semana para el nuevo cálculo
+            const fechasUnicasPorDiaSemana = Array(7).fill(0).map(() => new Set());
+            // Recalculamos horasPorDiaSemana y conteoDiasPorSemana para la gráfica de promedio
+            todosLosRegistros.forEach(registro => {
+                const horas = parseFloat(registro.horas);
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+                
+                horasPorDiaSemana[diaSemana] += horas;
+                
+                const fechaDiaSemanaKey = registro.fecha; // Usamos solo la fecha para contar días únicos registrados
+                if (!fechasUnicasPorDiaSemana[diaSemana].has(fechaDiaSemanaKey)) {
+                    conteoDiasPorSemana[diaSemana]++;
+                    fechasUnicasPorDiaSemana[diaSemana].add(fechaDiaSemanaKey);
+                }
+            });
+
 
             // Calcular promedio de horas por día de la semana (solo si hay registros para ese día)
             const horasPromedioPorDiaSemana = horasPorDiaSemana.map((horas, index) => 
@@ -591,7 +613,7 @@
             barraProgresoDiv.textContent = progreso.toFixed(1) + "%";
             porcentajeProgresoSpan.textContent = progreso.toFixed(1) + "%";
 
-            // Calcular días válidos restantes
+            // Calcular días válidos restantes (para el promedio "a cumplir")
             let diasValidosRestantesCount = 0;
             let cursorParaDiasValidos = new Date(Math.max(hoy.getTime(), FECHA_INICIO_SERVICIO.getTime()));
             
@@ -604,10 +626,11 @@
 
                     let esDiaLaborable = true;
 
-                    // Excluir si la fecha ya tiene registros (para no contar días ya cubiertos)
-                    if (fechasUnicas.has(fechaStr)) {
-                        esDiaLaborable = false;
-                    }
+                    // NOTA: Para este cálculo, no excluimos días con registros ya existentes.
+                    // Se trata de los días *disponibles* para seguir registrando.
+                    // Si ya tienes un registro, sigue siendo un día que cuenta para el promedio restante.
+                    // Solo excluimos si el día está en la lista de 'diasExcluidos'
+                    // o si es Sábado/Domingo y se ha configurado para excluir.
 
                     if (excluirSabados && diaSemana === 6) { // Sábado
                         esDiaLaborable = false;
@@ -627,14 +650,15 @@
             }
             diasValidosRestantesSpan.textContent = diasValidosRestantesCount;
 
-            // Promedio de horas/día (GENERAL: Total de horas / Días en los que se registró)
-            const promedioDiarioGeneral = fechasUnicas.size > 0 ? (totalHoras / fechasUnicas.size) : 0;
-            promedioHorasSpan.textContent = promedioDiarioGeneral.toFixed(2);
+            // Promedio de horas/día (A CUMPLIR): Horas restantes / Días válidos restantes
+            const promedioDiarioACumplir = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
+            promedioHorasSpan.textContent = promedioDiarioACumplir.toFixed(2);
 
 
             // Renderizar gráficas
             renderizarGraficaHoras(totalHoras, horasRestantes);
-            renderizarGraficaDiasSemana(horasPorDiaSemana);
+            // La gráfica de horas totales por día de la semana no necesita recalcularse el conteo
+            renderizarGraficaDiasSemana(horasPorDiaSemana.map(h => h)); // Pasamos una copia para que no se modifique el original
             renderizarGraficaPromedioDiasSemana(horasPromedioPorDiaSemana); // Nueva gráfica de promedio por día
             
             // Renderizar registros recientes
@@ -706,7 +730,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Horas por Día de la Semana',
+                        label: 'Horas Totales por Día de la Semana',
                         data: horasPorDiaSemana,
                         backgroundColor: [
                             'rgba(52, 152, 219, 0.7)', // Lunes
@@ -716,7 +740,7 @@
                             'rgba(230, 126, 34, 0.7)', // Viernes
                             'rgba(231, 76, 60, 0.7)', // Sábado
                             'rgba(52, 73, 94, 0.7)'  // Domingo
-                        ],
+                        ].sort(() => 0.5 - Math.random()), // Mezcla los colores
                         borderColor: [
                             'rgba(52, 152, 219, 1)',
                             'rgba(46, 204, 113, 1)',
@@ -725,7 +749,7 @@
                             'rgba(230, 126, 34, 1)',
                             'rgba(231, 76, 60, 1)',
                             'rgba(52, 73, 94, 1)'
-                        ],
+                        ].sort(() => 0.5 - Math.random()), // Mezcla los bordes
                         borderWidth: 1
                     }]
                 },
@@ -785,7 +809,7 @@
                             'rgba(153, 102, 255, 0.7)', // Jueves
                             'rgba(255, 159, 64, 0.7)', // Viernes
                             'rgba(199, 199, 199, 0.7)'  // Sábado
-                        ],
+                        ].sort(() => 0.5 - Math.random()), // Mezcla los colores
                         borderColor: [
                             'rgba(255, 99, 132, 1)',
                             'rgba(54, 162, 235, 1)',
@@ -794,7 +818,7 @@
                             'rgba(153, 102, 255, 1)',
                             'rgba(255, 159, 64, 1)',
                             'rgba(199, 199, 199, 1)'
-                        ],
+                        ].sort(() => 0.5 - Math.random()), // Mezcla los bordes
                         borderWidth: 1
                     }]
                 },
