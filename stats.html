@@ -366,7 +366,7 @@
                         <span class="stat-value" id="dias-registrados">Cargando...</span>
                     </div>
                     <div class="stat-card stat-promedio">
-                        <span class="stat-title">Prom. horas/día</span>
+                        <span class="stat-title">Prom. horas/día (Registrado)</span>
                         <span class="stat-value" id="promedio-horas">Cargando...</span>
                     </div>
                     <div class="stat-card stat-validos">
@@ -397,8 +397,12 @@
                     <canvas id="horasChart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Registros por Día de la Semana</h3>
+                    <h3>Horas Totales por Día de la Semana</h3>
                     <canvas id="diasSemanaChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Promedio de Horas por Día de la Semana</h3>
+                    <canvas id="promedioDiasSemanaChart"></canvas>
                 </div>
             </div>
         </div>
@@ -457,6 +461,7 @@
         // Referencias para las gráficas
         let horasChartInstance = null;
         let diasSemanaChartInstance = null;
+        let promedioDiasSemanaChartInstance = null; // Nueva instancia para la gráfica de promedio
 
         // Referencia para la lista de recientes
         const listaRecientesUL = document.getElementById('lista-recientes');
@@ -548,17 +553,25 @@
             let totalHoras = 0;
             const fechasUnicas = new Set();
             const horasPorDiaSemana = [0, 0, 0, 0, 0, 0, 0]; // Dom, Lun, Mar, Mié, Jue, Vie, Sáb
+            const conteoDiasPorSemana = [0, 0, 0, 0, 0, 0, 0]; // Conteo de días registrados por cada día de la semana
 
             todosLosRegistros.forEach(registro => {
                 const horas = parseFloat(registro.horas);
                 totalHoras += horas;
                 fechasUnicas.add(registro.fecha);
 
-                // Calcular horas por día de la semana
+                // Calcular horas y conteo por día de la semana
                 const fechaObj = new Date(registro.fecha + 'T00:00:00');
                 const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
                 horasPorDiaSemana[diaSemana] += horas;
+                conteoDiasPorSemana[diaSemana]++;
             });
+
+            // Calcular promedio de horas por día de la semana (solo si hay registros para ese día)
+            const horasPromedioPorDiaSemana = horasPorDiaSemana.map((horas, index) => 
+                conteoDiasPorSemana[index] > 0 ? (horas / conteoDiasPorSemana[index]).toFixed(2) : 0
+            );
+
 
             const hoy = fechaSinHoraUTC(formatoFechaISO(new Date()));
 
@@ -614,13 +627,15 @@
             }
             diasValidosRestantesSpan.textContent = diasValidosRestantesCount;
 
-            // Promedio de horas/día
-            const promedioDiario = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
-            promedioHorasSpan.textContent = promedioDiario.toFixed(2);
+            // Promedio de horas/día (GENERAL: Total de horas / Días en los que se registró)
+            const promedioDiarioGeneral = fechasUnicas.size > 0 ? (totalHoras / fechasUnicas.size) : 0;
+            promedioHorasSpan.textContent = promedioDiarioGeneral.toFixed(2);
+
 
             // Renderizar gráficas
             renderizarGraficaHoras(totalHoras, horasRestantes);
             renderizarGraficaDiasSemana(horasPorDiaSemana);
+            renderizarGraficaPromedioDiasSemana(horasPromedioPorDiaSemana); // Nueva gráfica de promedio por día
             
             // Renderizar registros recientes
             renderizarRegistrosRecientes();
@@ -694,21 +709,21 @@
                         label: 'Horas por Día de la Semana',
                         data: horasPorDiaSemana,
                         backgroundColor: [
-                            'rgba(231, 76, 60, 0.7)', // Rojo (Domingo)
-                            'rgba(52, 152, 219, 0.7)', // Azul (Lunes)
-                            'rgba(46, 204, 113, 0.7)', // Verde (Martes)
-                            'rgba(155, 89, 182, 0.7)', // Púrpura (Miércoles)
-                            'rgba(241, 196, 15, 0.7)', // Amarillo (Jueves)
-                            'rgba(230, 126, 34, 0.7)', // Naranja (Viernes)
-                            'rgba(52, 73, 94, 0.7)'  // Gris oscuro (Sábado)
+                            'rgba(52, 152, 219, 0.7)', // Lunes
+                            'rgba(46, 204, 113, 0.7)', // Martes
+                            'rgba(155, 89, 182, 0.7)', // Miércoles
+                            'rgba(241, 196, 15, 0.7)', // Jueves
+                            'rgba(230, 126, 34, 0.7)', // Viernes
+                            'rgba(231, 76, 60, 0.7)', // Sábado
+                            'rgba(52, 73, 94, 0.7)'  // Domingo
                         ],
                         borderColor: [
-                            'rgba(231, 76, 60, 1)',
                             'rgba(52, 152, 219, 1)',
                             'rgba(46, 204, 113, 1)',
                             'rgba(155, 89, 182, 1)',
                             'rgba(241, 196, 15, 1)',
                             'rgba(230, 126, 34, 1)',
+                            'rgba(231, 76, 60, 1)',
                             'rgba(52, 73, 94, 1)'
                         ],
                         borderWidth: 1
@@ -721,18 +736,100 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Horas'
+                                text: 'Horas Totales'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
                             display: false // No mostrar la leyenda de los datasets
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw.toFixed(1)} hrs`;
+                                }
+                            }
                         }
                     }
                 }
             });
         }
+
+        // Nueva función para la gráfica de promedio por día de la semana
+        function renderizarGraficaPromedioDiasSemana(horasPromedioPorDiaSemana) {
+            const ctx = document.getElementById('promedioDiasSemanaChart').getContext('2d');
+            const labels = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            if (promedioDiasSemanaChartInstance) {
+                promedioDiasSemanaChartInstance.destroy(); // Destruir instancia anterior si existe
+            }
+
+            promedioDiasSemanaChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Promedio de Horas por Día Registrado',
+                        data: horasPromedioPorDiaSemana,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)', // Domingo
+                            'rgba(54, 162, 235, 0.7)', // Lunes
+                            'rgba(255, 206, 86, 0.7)', // Martes
+                            'rgba(75, 192, 192, 0.7)', // Miércoles
+                            'rgba(153, 102, 255, 0.7)', // Jueves
+                            'rgba(255, 159, 64, 0.7)', // Viernes
+                            'rgba(199, 199, 199, 0.7)'  // Sábado
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(199, 199, 199, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Promedio de Horas'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw} hrs (promedio)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
 
         // =========================================================================
         // Funciones para Registros Recientes
