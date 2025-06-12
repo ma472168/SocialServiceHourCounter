@@ -424,6 +424,54 @@
                 min-height: 80px;
             }
         }
+
+        @media (prefers-color-scheme: dark) {
+    :root {
+        --primary-color: #5dade2;
+        --secondary-color: #58d68d;
+        --accent-color: #ec7063;
+        --text-color: #e0e0e0;
+        --bg-color: #1e1e1e;
+        --card-bg: #2c2c2c;
+        --border-color: #444;
+        --shadow-light: 0 4px 8px rgba(255, 255, 255, 0.05);
+        --shadow-medium: 0 6px 12px rgba(255, 255, 255, 0.1);
+    }
+
+    .info-box {
+        background-color: #244b3c;
+        color: #a9dfbf;
+        border-color: #1f3f31;
+    }
+
+    .recent-item:hover,
+    .search-item:hover {
+        background-color: #333;
+    }
+
+    .empty-message {
+        color: #aaa;
+    }
+
+    .chart-container {
+        background-color: #2e2e2e;
+    }
+
+    .progress-bar {
+        background-color: #444;
+    }
+
+    .search-input-group input[type="text"] {
+        background-color: #222;
+        color: #eee;
+        border-color: #555;
+    }
+
+    .search-input-group input[type="text"]:focus {
+        box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.3);
+    }
+}
+
     </style>
 </head>
 
