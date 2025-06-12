@@ -4,19 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contador de Horas de Servicio Social</title>
-    <link rel="stylesheet" href="style.css">
-
+    <title>Registro de Horas Servicio Social</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
-        // ====================================================================
-        // IMPORTANTE: REEMPLAZA ESTO CON TUS PROPIAS CREDENCIALES DE FIREBASE
-        // (Las obtuviste de la consola de Firebase en el Paso 2)
-        // ====================================================================
+        // Tu configuración de Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyCD-A8ZoKMyu4_ZZhD5Vt5BZNG4xxwWT28",
+            apiKey: "AIzaSyCD-A8ZoKMyu4_ZZhD5Vt5BZNG4xxwWT28", // <-- ¡Pega tu API Key real aquí!
             authDomain: "socialservicehourcounterapp.firebaseapp.com",
             projectId: "socialservicehourcounterapp",
             storageBucket: "socialservicehourcounterapp.firebasestorage.app",
@@ -25,89 +21,1134 @@
             measurementId: "G-MVSYDEM168"
         };
 
-
-        // Inicializa Firebase con tu configuración
+        // Inicializa Firebase
         firebase.initializeApp(firebaseConfig);
 
-        // Obtén una referencia a la Realtime Database
-        // Esta variable 'database' será usada por tu script principal (SocialServiceHourCounter.js)
-        const database = firebase.database();
-
-        // Puedes poner aquí cualquier otra variable global o código que necesites antes
-        // de que se cargue tu script principal.
-        // Las URLs antiguas de Apps Script o del proxy CORS YA NO SON NECESARIAS.
-        // Borra cualquier línea como:
-        // const GOOGLE_APP_SCRIPT_URL = '...';
-        // const YOUR_ACTUAL_APP_SCRIPT_URL = '...';
-
+        // Obtén una referencia a la Realtime Database (hazla global para SocialServiceHourCounter.js)
+        const database = firebase.database(); 
     </script>
-    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* CSS proporcionado por ti (en línea en el HTML) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #3498db;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background: #e1f5fe;
+            border-left: 4px solid #039be5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 1rem;
+        }
+
+        .info-box strong {
+            color: #0277bd;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin: 25px 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e6ed;
+        }
+
+        .card-header {
+            padding: 18px 25px;
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.3rem;
+        }
+
+        .card-header:hover {
+            background: linear-gradient(to right, #2980b9, #1a252f);
+        }
+
+        .card-header::after {
+            content: "▼";
+            font-size: 0.9rem;
+            transition: transform 0.3s;
+        }
+
+        .card.active .card-header::after {
+            transform: rotate(180deg);
+        }
+
+        .card-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, padding 0.3s ease;
+            padding: 0 25px;
+        }
+
+        .card.active .card-content {
+            max-height: 2000px; /* Suficiente para que el contenido se expanda */
+            padding: 25px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input[type="date"],
+        input[type="number"],
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        button {
+            padding: 12px 24px;
+            margin: 10px 0;
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #2ecc71;
+        }
+
+        .btn-success:hover {
+            background: #27ae60;
+        }
+
+        .registro-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .registro-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .registro-item:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        .registro-item:hover {
+            background-color: #f0f7ff;
+        }
+
+        .registro-details {
+            flex: 1;
+        }
+
+        .registro-date {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .registro-note {
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-size: 0.95rem;
+        }
+
+        .registro-hours {
+            font-weight: bold;
+            font-size: 1.3rem;
+            color: #3498db;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 170px;
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-title {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-horas {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .stat-restantes {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .stat-dias {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+
+        .stat-promedio {
+            background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+        }
+
+        .stat-validos {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+
+        .progress-container {
+            margin: 30px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .progress-bar {
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 40px;
+            background: #eee;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #1abc9c);
+            width: 0%;
+            transition: width 0.8s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .excluidos-container {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .excluidos-list {
+            margin: 15px 0;
+            list-style: none;
+        }
+
+        .excluido-item {
+            padding: 10px 15px;
+            border-radius: 6px;
+            background: #fff;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #eee;
+        }
+
+        .fecha-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .fecha-input-group input {
+            flex: 1;
+        }
+
+        .fecha-input-group button {
+            width: auto;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .highlight {
+            background-color: #fffde7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .stats-container {
+                flex-direction: column;
+            }
+
+            .stat-card {
+                min-width: 100%;
+            }
+
+            .fecha-input-group {
+                flex-direction: column;
+            }
+
+            .registro-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .registro-hours {
+                text-align: left;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Contador de Horas de Servicio Social</h1>
+        <header>
+            <h1>📅 Registro de Horas de Servicio Social</h1>
+            <div class="info-box">
+                <p><strong>Periodo:</strong> 02/06/2025 al 30/11/2025 | <strong>Total días:</strong> 182 | <strong>Días
+                        laborables:</strong> 130 | <strong>Horas requeridas:</strong> 500</p>
+            </div>
+        </header>
 
-        <div class="config-section card">
-            <h2>Configuración Global</h2>
-            <div class="input-group">
-                <input type="checkbox" id="excluirSabados">
-                <label for="excluirSabados">Excluir Sábados</label>
+        <div class="card active" id="form-card">
+            <div class="card-header" onclick="toggleCard(this.parentElement)">
+                📝 Formulario de Registro
             </div>
-            <div class="input-group">
-                <input type="checkbox" id="excluirDomingos">
-                <label for="excluirDomingos">Excluir Domingos</label>
+            <div class="card-content">
+                <form id="registro-form">
+                    <label for="fecha">Fecha:</label>
+                    <input type="date" id="fecha" required min="2025-06-02" max="2025-11-30">
+
+                    <label for="horas">Horas trabajadas:</label>
+                    <input type="number" id="horas" min="0.5" step="0.5" required placeholder="Ej: 4.5">
+
+                    <label for="nota">Nota (opcional):</label>
+                    <input type="text" id="nota" placeholder="Descripción de la actividad">
+
+                    <button type="submit" class="btn-success" id="agregarHorasBtn">➕ Registrar Horas</button>
+                </form>
             </div>
-            <div class="input-group">
-                <label for="diasExcluidosInput">Días a Excluir (YYYY-MM-DD, separados por comas):</label>
-                <input type="text" id="diasExcluidosInput" placeholder="Ej: 2023-12-25, 2024-01-01">
-            </div>
-            <button id="guardarConfigBtn" class="btn">Guardar Configuración</button>
         </div>
 
-        <div class="input-section card">
-            <h2>Registrar Horas</h2>
-            <div class="input-group">
-                <label for="fecha">Fecha:</label>
-                <input type="date" id="fecha" required>
+        <div class="card active" id="stats-card">
+            <div class="card-header" onclick="toggleCard(this.parentElement)">
+                📊 Estadísticas
             </div>
-            <div class="input-group">
-                <label for="horas">Horas:</label>
-                <input type="number" id="horas" min="0.5" step="0.5" required>
+            <div class="card-content">
+                <div class="stats-container">
+                    <div class="stat-card stat-horas">
+                        <span class="stat-title">Horas registradas</span>
+                        <span class="stat-value" id="horas-registradas">0.0</span>
+                    </div>
+                    <div class="stat-card stat-restantes">
+                        <span class="stat-title">Horas restantes</span>
+                        <span class="stat-value" id="horas-restantes">500.0</span>
+                    </div>
+                    <div class="stat-card stat-dias">
+                        <span class="stat-title">Días registrados</span>
+                        <span class="stat-value" id="dias-registrados">0</span>
+                    </div>
+                    <div class="stat-card stat-promedio">
+                        <span class="stat-title">Prom. horas/día</span>
+                        <span class="stat-value" id="promedio-horas">0.00</span>
+                    </div>
+                    <div class="stat-card stat-validos">
+                        <span class="stat-title">Días válidos restantes</span>
+                        <span class="stat-value" id="dias-validos-restantes">130</span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Progreso del servicio social</span>
+                        <span id="porcentaje-progreso">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="barra-progreso" class="progress-inner">0%</div>
+                    </div>
+                </div>
             </div>
-            <div class="input-group">
-                <label for="nota">Nota (Opcional):</label>
-                <input type="text" id="nota" placeholder="Descripción de la actividad">
-            </div>
-            <button id="agregarHorasBtn" class="btn">Agregar Horas</button>
         </div>
 
-        <div class="records-section card">
-            <h2>Registros de Horas</h2>
-            <p>Total de horas acumuladas: <span id="totalHoras">0</span></p>
-            <p>Días laborables estimados: <span id="diasLaborablesEstimados">0</span></p>
-            <div class="filters">
-                <input type="date" id="filtroFechaInicio" placeholder="Fecha Inicio">
-                <input type="date" id="filtroFechaFin" placeholder="Fecha Fin">
-                <button id="aplicarFiltroBtn" class="btn">Aplicar Filtro</button>
-                <button id="limpiarFiltroBtn" class="btn clear-btn">Limpiar Filtro</button>
+        <div class="card" id="records-card">
+            <div class="card-header" onclick="toggleCard(this.parentElement)">
+                📋 Registros
             </div>
-            <table id="horasTable">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Horas</th>
-                        <th>Nota</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+            <div class="card-content">
+                <div class="filters">
+                    <input type="date" id="filtroFechaInicio" placeholder="Fecha inicio">
+                    <input type="date" id="filtroFechaFin" placeholder="Fecha fin">
+                    <button id="aplicarFiltroBtn" class="btn-success">Aplicar Filtro</button>
+                    <button id="limpiarFiltroBtn" class="btn btn-danger">Limpiar Filtro</button>
+                </div>
+                
+                <ul id="lista-registros" class="registro-list">
+                    <li class="empty-message">No hay registros aún. Agrega tu primera entrada usando el formulario.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card" id="import-export-card">
+            <div class="card-header" onclick="toggleCard(this.parentElement)">
+                💾 Importar / Exportar
+            </div>
+            <div class="card-content">
+                <button onclick="exportarJSON()" class="btn-success">⬇️ Exportar JSON</button>
+                <p style="margin: 20px 0 10px; font-size: 1rem;">Importar registros:</p>
+                <input type="file" id="importar-json" accept=".json">
+            </div>
+        </div>
+
+        <div class="card" id="options-card">
+            <div class="card-header" onclick="toggleCard(this.parentElement)">
+                ⚙️ Opciones
+            </div>
+            <div class="card-content">
+                <button onclick="borrarRegistros()" class="btn-danger">🗑️ Borrar todos los registros</button>
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+                <div class="excluidos-container">
+                    <h3 style="margin-bottom: 15px;">🗓️ Días a excluir del cálculo</h3>
+                    <p>Agregar días que no trabajarás (vacaciones, días festivos, etc.):</p>
+
+                    <div class="fecha-input-group">
+                        <input type="date" id="fecha-excluida" min="2025-06-02" max="2025-11-30">
+                        <button type="button" onclick="agregarFechaExcluida()">➕ Añadir</button>
+                    </div>
+
+                    <ul id="lista-excluidos" class="excluidos-list">
+                        <li class="empty-message">No hay días excluidos</li>
+                    </ul>
+
+                    <div style="margin-top: 20px;">
+                        <label><input type="checkbox" id="excluir-sabados"> Excluir sábados</label><br>
+                        <label><input type="checkbox" id="excluir-domingos"> Excluir domingos</label>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="SocialServiceHourCounter.js"></script>
+    <script>
+        // =========================================================================
+        // Variables Globales y Referencias a Firebase
+        // La variable 'database' ya está inicializada arriba en el HTML.
+        // =========================================================================
+
+        const registrosRef = database.ref('registros'); // Referencia al nodo 'registros' en Firebase
+        const configRef = database.ref('config');       // Referencia al nodo 'config' en Firebase
+
+        let todosLosRegistros = []; // Almacena los registros cargados de Firebase
+        let diasExcluidos = [];     // Días específicos a excluir
+        let excluirSabados = false;
+        let excluirDomingos = false;
+
+        // === Referencias a elementos del DOM ===
+        // Formulario de registro
+        const registroForm = document.getElementById('registro-form');
+        const fechaInput = document.getElementById('fecha');
+        const horasInput = document.getElementById('horas');
+        const notaInput = document.getElementById('nota');
+        const agregarHorasBtn = document.getElementById('agregarHorasBtn');
+
+        // Estadísticas
+        const horasRegistradasSpan = document.getElementById('horas-registradas');
+        const horasRestantesSpan = document.getElementById('horas-restantes');
+        const diasRegistradosSpan = document.getElementById('dias-registrados');
+        const promedioHorasSpan = document.getElementById('promedio-horas');
+        const diasValidosRestantesSpan = document.getElementById('dias-validos-restantes');
+        const porcentajeProgresoSpan = document.getElementById('porcentaje-progreso');
+        const barraProgresoDiv = document.getElementById('barra-progreso');
+
+        // Registros
+        const listaRegistrosUL = document.getElementById('lista-registros');
+        const filtroFechaInicio = document.getElementById('filtroFechaInicio');
+        const filtroFechaFin = document.getElementById('filtroFechaFin');
+        const aplicarFiltroBtn = document.getElementById('aplicarFiltroBtn');
+        const limpiarFiltroBtn = document.getElementById('limpiarFiltroBtn');
+
+        // Importar/Exportar
+        const importarJsonInput = document.getElementById('importar-json');
+
+        // Opciones/Exclusiones
+        const fechaExcluidaInput = document.getElementById('fecha-excluida');
+        const listaExcluidosUL = document.getElementById('lista-excluidos');
+        const excluirSabadosCheckbox = document.getElementById('excluir-sabados');
+        const excluirDomingosCheckbox = document.getElementById('excluir-domingos');
+
+
+        // =========================================================================
+        // Funciones de utilidad
+        // =========================================================================
+
+        // Función para formatear fecha a YYYY-MM-DD
+        function formatoFechaISO(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Función para obtener fecha sin información de tiempo
+        function fechaSinHora(date) {
+            const d = new Date(date);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+
+        // Toggle para mostrar/ocultar tarjetas
+        function toggleCard(card) {
+            card.classList.toggle("active");
+        }
+
+        // =========================================================================
+        // Funciones para Firebase (adaptadas de SocialServiceHourCounter.js anterior)
+        // =========================================================================
+
+        /**
+         * Carga los datos (registros y configuración) desde Firebase.
+         */
+        async function cargarDatosDesdeLaNube() {
+            try {
+                // Cargar registros
+                const registrosSnapshot = await registrosRef.once('value');
+                const registrosFirebase = registrosSnapshot.val() || {};
+                let registrosArray = [];
+
+                for (let key in registrosFirebase) {
+                    if (registrosFirebase.hasOwnProperty(key)) {
+                        registrosFirebase[key].firebaseKey = key; // Guarda la clave de Firebase
+                        registrosArray.push(registrosFirebase[key]);
+                    }
+                }
+                todosLosRegistros = registrosArray;
+
+                // Cargar configuración
+                const configSnapshot = await configRef.once('value');
+                const configFirebase = configSnapshot.val() || {
+                    excluirSabados: false,
+                    excluirDomingos: false,
+                    diasExcluidos: []
+                };
+
+                excluirSabados = configFirebase.excluirSabados;
+                excluirDomingos = configFirebase.excluirDomingos;
+                diasExcluidos = configFirebase.diasExcluidos || [];
+
+                // Actualizar checkboxes y input de días excluidos en la UI
+                excluirSabadosCheckbox.checked = excluirSabados;
+                excluirDomingosCheckbox.checked = excluirDomingos;
+                
+                console.log("Datos cargados desde Firebase:", {
+                    registros: todosLosRegistros,
+                    config: configFirebase
+                });
+
+                actualizarVista(); // Actualiza la UI con los datos cargados
+            } catch (error) {
+                console.error("❌ Error al cargar datos desde Firebase:", error);
+                alert("Error al cargar datos. Revisa la consola para más detalles.");
+            }
+        }
+
+        /**
+         * Guarda todos los datos (registros y configuración) en Firebase.
+         */
+        async function guardarDatosEnLaNube() {
+            try {
+                // Para guardar registros, podemos enviarlos como un objeto donde la clave es firebaseKey
+                const registrosObjeto = {};
+                todosLosRegistros.forEach(registro => {
+                    const key = registro.firebaseKey || registrosRef.push().key; // Usa la clave existente o genera una nueva
+                    registrosObjeto[key] = {
+                        fecha: registro.fecha,
+                        horas: registro.horas,
+                        nota: registro.nota
+                    };
+                });
+
+                // Si el array de registros está vacío, eliminamos el nodo 'registros'.
+                await registrosRef.set(Object.keys(registrosObjeto).length ? registrosObjeto : null);
+
+                // Guardar configuración en su propio nodo
+                await configRef.set({
+                    excluirSabados: excluirSabadosCheckbox.checked,
+                    excluirDomingos: excluirDomingosCheckbox.checked,
+                    diasExcluidos: diasExcluidos
+                });
+
+                console.log("✅ Datos guardados en Firebase correctamente.");
+            } catch (error) {
+                console.error("❌ Error al guardar datos en Firebase:", error);
+                alert("Error al guardar datos. Revisa la consola para más detalles.");
+            }
+        }
+
+        // =========================================================================
+        // Lógica de la Aplicación (adaptada para usar datos de Firebase y la UI existente)
+        // =========================================================================
+
+        // Manejar envío del formulario de registro
+        registroForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const fecha = fechaInput.value;
+            const horas = parseFloat(horasInput.value);
+            const nota = notaInput.value.trim();
+
+            if (!fecha || isNaN(horas) || horas <= 0) {
+                alert("❌ Por favor, ingresa una fecha y horas válidas.");
+                return;
+            }
+
+            const fechaMin = new Date("2025-06-02T00:00:00");
+            const fechaMax = new Date("2025-11-30T23:59:59");
+            const fechaSel = new Date(fecha);
+
+            if (fechaSel < fechaMin || fechaSel > fechaMax) {
+                alert("❌ La fecha debe estar entre el 02/06/2025 y el 30/11/2025.");
+                return;
+            }
+
+            const nuevoRegistro = { fecha, horas, nota };
+
+            try {
+                // Añade el registro directamente a Firebase usando .push() para una clave única
+                const newRef = await registrosRef.push(nuevoRegistro);
+                nuevoRegistro.firebaseKey = newRef.key; // Guarda la clave generada por Firebase
+                todosLosRegistros.push(nuevoRegistro); // Añade al array local
+                
+                limpiarFormularioRegistro();
+                actualizarVista(); // Renderiza con todos los registros y aplica filtros
+                alert(`✅ ¡${horas} horas registradas para ${fecha} correctamente!`);
+            } catch (error) {
+                console.error("Error al añadir horas a Firebase:", error);
+                alert("No se pudieron agregar las horas. Revisa la consola.");
+            }
+        });
+
+        // Limpia los campos del formulario de registro
+        function limpiarFormularioRegistro() {
+            fechaInput.value = '';
+            horasInput.value = '';
+            notaInput.value = '';
+            // Establecer fecha por defecto (hoy)
+            fechaInput.value = formatoFechaISO(new Date());
+        }
+
+        // Exportar datos a JSON (solo de registros)
+        function exportarJSON() {
+            if (todosLosRegistros.length === 0) {
+                alert("⚠️ No hay registros para exportar.");
+                return;
+            }
+
+            // Eliminar la clave 'firebaseKey' antes de exportar si no la quieres en el JSON exportado
+            const registrosParaExportar = todosLosRegistros.map(r => {
+                const { firebaseKey, ...rest } = r;
+                return rest;
+            });
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(registrosParaExportar, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "registros_servicio_social.json");
+            dl.click();
+        }
+
+        // Importar JSON
+        importarJsonInput.addEventListener("change", function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        // Antes de importar, podrías querer borrar los registros existentes en Firebase
+                        // o fusionarlos. Aquí los vamos a sobrescribir.
+                        todosLosRegistros = data; 
+                        
+                        // Guardar en Firebase (Esto sobrescribirá los registros existentes en Firebase)
+                        await guardarDatosEnLaNube();
+                        actualizarVista();
+                        alert(`✅ ${data.length} registros importados y guardados en la nube!`);
+                    } else {
+                        throw new Error("Formato inválido");
+                    }
+                } catch (error) {
+                    console.error("Error al importar JSON:", error);
+                    alert("❌ Archivo JSON inválido. Por favor, selecciona un archivo válido.");
+                }
+            };
+            reader.readAsText(file);
+            this.value = ""; // Limpiar input de archivo
+        });
+
+        // Borrar todos los registros
+        async function borrarRegistros() {
+            if (todosLosRegistros.length === 0 && diasExcluidos.length === 0 && 
+                !excluirSabadosCheckbox.checked && !excluirDomingosCheckbox.checked) {
+                alert("ℹ️ No hay datos para borrar.");
+                return;
+            }
+
+            if (confirm("⚠️ ¿Estás seguro de que quieres borrar TODOS los registros y la configuración? Esta acción no se puede deshacer.")) {
+                try {
+                    await database.ref('/').remove(); // Elimina todo bajo la raíz de tu base de datos
+                    todosLosRegistros = [];
+                    diasExcluidos = [];
+                    excluirSabadosCheckbox.checked = false;
+                    excluirDomingosCheckbox.checked = false;
+                    
+                    actualizarVista();
+                    alert("🗑️ Todos los datos (registros y configuración) han sido eliminados de Firebase.");
+                } catch (error) {
+                    console.error("Error al borrar todos los datos de Firebase:", error);
+                    alert("❌ Hubo un error al borrar los datos. Revisa la consola.");
+                }
+            }
+        }
+        
+        // Agregar fecha excluida
+        async function agregarFechaExcluida() {
+            const fecha = fechaExcluidaInput.value;
+
+            if (!fecha) {
+                alert("❌ Por favor, selecciona una fecha.");
+                return;
+            }
+
+            if (diasExcluidos.includes(fecha)) {
+                alert("⚠️ Esta fecha ya está en la lista de días excluidos.");
+                return;
+            }
+
+            const fechaMin = new Date("2025-06-02T00:00:00");
+            const fechaMax = new Date("2025-11-30T23:59:59");
+            const fechaSel = new Date(fecha);
+
+            if (fechaSel < fechaMin || fechaSel > fechaMax) {
+                alert("❌ La fecha debe estar entre el 02/06/2025 y el 30/11/2025.");
+                return;
+            }
+
+            diasExcluidos.push(fecha);
+            diasExcluidos.sort(); // Mantener ordenado
+            fechaExcluidaInput.value = ""; // Limpiar el input
+            
+            await guardarDatosEnLaNube(); // Guardar cambios en Firebase
+            actualizarVista(); // Actualizar la UI
+        }
+
+        // Eliminar fecha excluida
+        async function eliminarFechaExcluida(index) {
+            diasExcluidos.splice(index, 1); // Elimina del array local
+            await guardarDatosEnLaNube(); // Guarda el array actualizado en Firebase
+            actualizarVista(); // Actualiza la UI
+        }
+
+        // Event listeners para opciones de exclusión de fines de semana
+        excluirSabadosCheckbox.addEventListener("change", async function () {
+            await guardarDatosEnLaNube(); // Guarda el estado del checkbox en Firebase
+            actualizarVista(); // Re-calcula y actualiza la UI
+        });
+
+        excluirDomingosCheckbox.addEventListener("change", async function () {
+            await guardarDatosEnLaNube(); // Guarda el estado del checkbox en Firebase
+            actualizarVista(); // Re-calcula y actualiza la UI
+        });
+
+        // =========================================================================
+        // Renderizado de la UI y Cálculos de Estadísticas
+        // =========================================================================
+
+        // Actualizar toda la interfaz
+        function actualizarVista() {
+            // Actualizar lista de registros (con filtros)
+            let registrosFiltrados = todosLosRegistros;
+            const inicioFiltro = filtroFechaInicio.value;
+            const finFiltro = filtroFechaFin.value;
+
+            if (inicioFiltro) {
+                registrosFiltrados = registrosFiltrados.filter(r => r.fecha >= inicioFiltro);
+            }
+            if (finFiltro) {
+                registrosFiltrados = registrosFiltrados.filter(r => r.fecha <= finFiltro);
+            }
+
+            // Ordenar registros por fecha (más reciente primero)
+            registrosFiltrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            if (registrosFiltrados.length === 0) {
+                listaRegistrosUL.innerHTML = '<li class="empty-message">No hay registros aún. Agrega tu primera entrada usando el formulario.</li>';
+            } else {
+                listaRegistrosUL.innerHTML = "";
+                registrosFiltrados.forEach((registro, index) => {
+                    const li = document.createElement("li");
+                    li.className = "registro-item";
+
+                    const fechaObj = new Date(registro.fecha + 'T00:00:00'); // Asegura la fecha en UTC para evitar problemas de zona horaria
+                    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    li.innerHTML = `
+                        <div class="registro-details">
+                            <div class="registro-date">${fechaFormateada}</div>
+                            <div class="registro-note">${registro.nota || "Sin descripción"}</div>
+                        </div>
+                        <div class="registro-hours">${registro.horas.toFixed(1)} hrs</div>
+                        <div class="action-buttons">
+                            <button class="btn-success" onclick="editarRegistro('${registro.firebaseKey}')">✏️ Editar</button>
+                            <button class="btn-danger" onclick="eliminarRegistro('${registro.firebaseKey}')">🗑️ Eliminar</button>
+                        </div>
+                    `;
+                    listaRegistrosUL.appendChild(li);
+                });
+            }
+
+            // Calcular y actualizar estadísticas
+            let totalHoras = 0;
+            const fechasUnicas = new Set();
+            todosLosRegistros.forEach(registro => {
+                totalHoras += parseFloat(registro.horas);
+                fechasUnicas.add(registro.fecha);
+            });
+
+            const HORAS_REQUERIDAS = 500;
+            const FECHA_INICIO_SERVICIO = new Date("2025-06-02T00:00:00");
+            const FECHA_FIN_SERVICIO = new Date("2025-11-30T00:00:00");
+            const hoy = fechaSinHora(new Date());
+
+            // Horas registradas
+            horasRegistradasSpan.textContent = totalHoras.toFixed(1);
+
+            // Horas restantes
+            const horasRestantes = Math.max(0, HORAS_REQUERIDAS - totalHoras);
+            horasRestantesSpan.textContent = horasRestantes.toFixed(1);
+
+            // Días registrados
+            diasRegistradosSpan.textContent = fechasUnicas.size;
+
+            // Progreso
+            const progreso = Math.min((totalHoras / HORAS_REQUERIDAS) * 100, 100);
+            barraProgresoDiv.style.width = progreso + "%";
+            barraProgresoDiv.textContent = progreso.toFixed(1) + "%";
+            porcentajeProgresoSpan.textContent = progreso.toFixed(1) + "%";
+
+            // Calcular días válidos restantes
+            let diasValidosRestantesCount = 0;
+            let cursorParaDiasValidos = new Date(Math.max(hoy.getTime(), FECHA_INICIO_SERVICIO.getTime()));
+            if (cursorParaDiasValidos > FECHA_FIN_SERVICIO) {
+                 diasValidosRestantesCount = 0; // Si ya pasó la fecha de fin
+            } else {
+                while (cursorParaDiasValidos <= FECHA_FIN_SERVICIO) {
+                    const fechaStr = formatoFechaISO(cursorParaDiasValidos);
+                    const diaSemana = cursorParaDiasValidos.getDay(); // 0 = Domingo, 6 = Sábado
+
+                    let esDiaLaborable = true;
+
+                    if (excluirSabadosCheckbox.checked && diaSemana === 6) { // Sábado
+                        esDiaLaborable = false;
+                    }
+                    if (excluirDomingosCheckbox.checked && diaSemana === 0) { // Domingo
+                        esDiaLaborable = false;
+                    }
+                    if (diasExcluidos.includes(fechaStr)) {
+                        esDiaLaborable = false;
+                    }
+
+                    if (esDiaLaborable) {
+                        diasValidosRestantesCount++;
+                    }
+                    cursorParaDiasValidos.setDate(cursorParaDiasValidos.getDate() + 1);
+                }
+            }
+            diasValidosRestantesSpan.textContent = diasValidosRestantesCount;
+            
+            // Promedio de horas/día
+            const promedioDiario = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
+            promedioHorasSpan.textContent = promedioDiario.toFixed(2);
+
+
+            // Actualizar lista de días excluidos
+            actualizarListaExcluidosUI();
+        }
+
+        // Actualizar lista de días excluidos en la UI
+        function actualizarListaExcluidosUI() {
+            if (diasExcluidos.length === 0) {
+                listaExcluidosUL.innerHTML = '<li class="empty-message">No hay días excluidos</li>';
+                return;
+            }
+
+            // Ordenar días excluidos por fecha
+            diasExcluidos.sort();
+
+            listaExcluidosUL.innerHTML = "";
+            diasExcluidos.forEach((fecha, index) => {
+                const li = document.createElement("li");
+                li.className = "excluido-item";
+
+                const fechaObj = new Date(fecha + 'T00:00:00'); // Asegura la fecha en UTC
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                li.innerHTML = `
+                    <span>${fechaFormateada}</span>
+                    <button class="btn-danger" onclick="eliminarFechaExcluida(${index})">Eliminar</button>
+                `;
+                listaExcluidosUL.appendChild(li);
+            });
+        }
+
+        // Función para editar un registro existente
+        function editarRegistro(firebaseKey) {
+            const registroAEditar = todosLosRegistros.find(r => r.firebaseKey === firebaseKey);
+            if (!registroAEditar) return;
+
+            // Rellenar el formulario con los datos del registro a editar
+            fechaInput.value = registroAEditar.fecha;
+            horasInput.value = registroAEditar.horas;
+            notaInput.value = registroAEditar.nota;
+
+            // Cambiar el texto y la acción del botón de agregar/guardar
+            agregarHorasBtn.textContent = 'Guardar Cambios';
+            agregarHorasBtn.classList.remove('btn-success');
+            agregarHorasBtn.classList.add('btn-primary'); // O la clase que prefieras para editar
+            agregarHorasBtn.onclick = async (event) => {
+                event.preventDefault(); // Previene el submit del formulario si es un botón de submit
+                
+                const fecha = fechaInput.value;
+                const horas = parseFloat(horasInput.value);
+                const nota = notaInput.value.trim();
+
+                if (!fecha || isNaN(horas) || horas <= 0) {
+                    alert('Por favor, ingresa una fecha y horas válidas.');
+                    return;
+                }
+
+                // Actualizar en Firebase
+                try {
+                    await registrosRef.child(firebaseKey).update({ fecha, horas, nota });
+
+                    // Actualizar el registro en el array local
+                    const index = todosLosRegistros.findIndex(r => r.firebaseKey === firebaseKey);
+                    if (index !== -1) {
+                        todosLosRegistros[index] = { ...todosLosRegistros[index], fecha, horas, nota };
+                    }
+                    
+                    alert('Registro actualizado exitosamente.');
+                    limpiarFormularioRegistro();
+                    
+                    // Restaurar botón y evento original
+                    agregarHorasBtn.textContent = '➕ Registrar Horas';
+                    agregarHorasBtn.classList.remove('btn-primary');
+                    agregarHorasBtn.classList.add('btn-success');
+                    agregarHorasBtn.onclick = null; // Quita el handler temporal
+                    registroForm.addEventListener('submit', handleFormSubmit); // Re-agrega el handler original
+                    
+                    actualizarVista();
+                } catch (error) {
+                    console.error("Error al actualizar registro en Firebase:", error);
+                    alert("No se pudo actualizar el registro. Revisa la consola.");
+                }
+            };
+
+            // Asegurarse de que el formulario no tenga múltiples listeners de submit
+            registroForm.removeEventListener('submit', handleFormSubmit);
+        }
+
+        // Función para eliminar un registro
+        async function eliminarRegistro(firebaseKey) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este registro?')) {
+                return;
+            }
+            try {
+                await registrosRef.child(firebaseKey).remove(); // Elimina de Firebase
+                todosLosRegistros = todosLosRegistros.filter(r => r.firebaseKey !== firebaseKey); // Elimina del array local
+                actualizarVista();
+                alert('Registro eliminado exitosamente.');
+            } catch (error) {
+                console.error("Error al eliminar registro de Firebase:", error);
+                alert("No se pudo eliminar el registro. Revisa la consola.");
+            }
+        }
+
+        // Filtro de registros
+        aplicarFiltroBtn.addEventListener('click', actualizarVista); // Llama a actualizarVista para aplicar el filtro
+        limpiarFiltroBtn.addEventListener('click', () => {
+            filtroFechaInicio.value = '';
+            filtroFechaFin.value = '';
+            actualizarVista(); // Llama a actualizarVista para limpiar el filtro
+        });
+
+        // Guarda el manejador de submit original para poder restaurarlo después de una edición
+        const handleFormSubmit = async (e) => {
+            e.preventDefault();
+            const fecha = fechaInput.value;
+            const horas = parseFloat(horasInput.value);
+            const nota = notaInput.value.trim();
+
+            if (!fecha || isNaN(horas) || horas <= 0) {
+                alert("❌ Por favor, ingresa una fecha y horas válidas.");
+                return;
+            }
+
+            const fechaMin = new Date("2025-06-02T00:00:00");
+            const fechaMax = new Date("2025-11-30T23:59:59");
+            const fechaSel = new Date(fecha);
+
+            if (fechaSel < fechaMin || fechaSel > fechaMax) {
+                alert("❌ La fecha debe estar entre el 02/06/2025 y el 30/11/2025.");
+                return;
+            }
+
+            const nuevoRegistro = { fecha, horas, nota };
+            try {
+                const newRef = await registrosRef.push(nuevoRegistro);
+                nuevoRegistro.firebaseKey = newRef.key;
+                todosLosRegistros.push(nuevoRegistro);
+                limpiarFormularioRegistro();
+                actualizarVista();
+                alert(`✅ ¡${horas} horas registradas para ${fecha} correctamente!`);
+            } catch (error) {
+                console.error("Error al añadir horas a Firebase:", error);
+                alert("No se pudieron agregar las horas. Revisa la consola.");
+            }
+        };
+
+        // Inicializar la aplicación
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Establecer la fecha actual por defecto en el input de fecha al cargar
+            fechaInput.value = formatoFechaISO(new Date());
+
+            await cargarDatosDesdeLaNube(); // Carga inicial de datos de Firebase
+            // La función actualizarVista() se llama dentro de cargarDatosDesdeLaNube()
+            // así que no necesitamos llamarla aquí de nuevo.
+
+            // Asegurarse de que el listener de submit esté activo (para nuevos registros)
+            registroForm.addEventListener('submit', handleFormSubmit);
+
+            // Expandir las secciones de formulario y estadísticas al inicio
+            document.getElementById('form-card').classList.add('active');
+            document.getElementById('stats-card').classList.add('active');
+        });
+    </script>
 </body>
 
 </html>
