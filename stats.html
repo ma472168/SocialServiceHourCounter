@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas del Servicio Social</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <script>
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCD-A8ZoKMyu4_ZZhD5Vt5BZNG4xxwWT28", // <-- ¡Pega tu API Key real aquí!
+            authDomain: "socialservicehourcounterapp.firebaseapp.com",
+            projectId: "socialservicehourcounterapp",
+            storageBucket: "socialservicehourcounterapp.firebasestorage.app",
+            messagingSenderId: "588272545302",
+            appId: "1:588272545302:web:03523e68c524985a900f37",
+            measurementId: "G-MVSYDEM168"
+        };
+
+        // Inicializa Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Obtén una referencia a la Realtime Database
+        const database = firebase.database();
+    </script>
+
+    <style>
+        /* CSS Base (copiado de tu archivo principal para mantener el estilo) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #3498db;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background: #e1f5fe;
+            border-left: 4px solid #039be5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 1rem;
+        }
+
+        .info-box strong {
+            color: #0277bd;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin: 25px 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e6ed;
+        }
+
+        .card-header {
+            padding: 18px 25px;
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.3rem;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        /* En esta página no hay toggle, así que no necesitamos el cursor o after */
+        .card-header.no-toggle {
+            cursor: default;
+        }
+        .card-header.no-toggle::after {
+            content: none;
+        }
+
+
+        .card-content {
+            padding: 25px;
+        }
+
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 170px;
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-title {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-horas {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .stat-restantes {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .stat-dias {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+
+        .stat-promedio {
+            background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+        }
+
+        .stat-validos {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+
+        .progress-container {
+            margin: 30px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .progress-bar {
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 40px;
+            background: #eee;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #1abc9c);
+            width: 0%;
+            transition: width 0.8s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Estilos específicos para las gráficas */
+        .chart-container {
+            width: 100%;
+            max-width: 600px; /* Ancho máximo para que no se extienda demasiado */
+            margin: 40px auto; /* Centrar y añadir espacio */
+            padding: 20px;
+            background: #fdfdfd;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 1px solid #e0e6ed;
+        }
+
+        .chart-container h3 {
+            text-align: center;
+            color: #34495e;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-container {
+                flex-direction: column;
+            }
+
+            .stat-card {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Estadísticas de Servicio Social</h1>
+            <div class="info-box">
+                <p><strong>Periodo:</strong> 02/06/2025 al 30/11/2025 | <strong>Total días:</strong> 182 |
+                    <strong>Días
+                        laborables:</strong> 130 | <strong>Horas requeridas:</strong> 500</p>
+            </div>
+        </header>
+
+        <div class="card active" id="stats-card">
+            <div class="card-header no-toggle">
+                Resumen General
+            </div>
+            <div class="card-content">
+                <div class="stats-container">
+                    <div class="stat-card stat-horas">
+                        <span class="stat-title">Horas registradas</span>
+                        <span class="stat-value" id="horas-registradas">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-restantes">
+                        <span class="stat-title">Horas restantes</span>
+                        <span class="stat-value" id="horas-restantes">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-dias">
+                        <span class="stat-title">Días registrados</span>
+                        <span class="stat-value" id="dias-registrados">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-promedio">
+                        <span class="stat-title">Prom. horas/día</span>
+                        <span class="stat-value" id="promedio-horas">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-validos">
+                        <span class="stat-title">Días válidos restantes</span>
+                        <span class="stat-value" id="dias-validos-restantes">Cargando...</span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Progreso del servicio social</span>
+                        <span id="porcentaje-progreso">Cargando...</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="barra-progreso" class="progress-inner">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="charts-card">
+            <div class="card-header no-toggle">
+                Visualización de Datos
+            </div>
+            <div class="card-content">
+                <div class="chart-container">
+                    <h3>Progreso de Horas</h3>
+                    <canvas id="horasChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Registros por Día de la Semana</h3>
+                    <canvas id="diasSemanaChart"></canvas>
+                </div>
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        // =========================================================================
+        // Variables Globales y Referencias a Firebase
+        // =========================================================================
+
+        const registrosRef = database.ref('registros'); // Referencia al nodo 'registros' en Firebase
+        const configRef = database.ref('config');     // Referencia al nodo 'config' en Firebase
+
+        let todosLosRegistros = []; // Almacena los registros cargados de Firebase
+        let diasExcluidos = [];     // Días específicos a excluir
+        let excluirSabados = false;
+        let excluirDomingos = false;
+
+        // === Referencias a elementos del DOM para estadísticas ===
+        const horasRegistradasSpan = document.getElementById('horas-registradas');
+        const horasRestantesSpan = document.getElementById('horas-restantes');
+        const diasRegistradosSpan = document.getElementById('dias-registrados');
+        const promedioHorasSpan = document.getElementById('promedio-horas');
+        const diasValidosRestantesSpan = document.getElementById('dias-validos-restantes');
+        const porcentajeProgresoSpan = document.getElementById('porcentaje-progreso');
+        const barraProgresoDiv = document.getElementById('barra-progreso');
+
+        // Referencias para las gráficas
+        let horasChartInstance = null;
+        let diasSemanaChartInstance = null;
+
+        // =========================================================================
+        // Constantes de Periodo de Servicio Social (copiadas del main.html)
+        // =========================================================================
+        const HORAS_REQUERIDAS = 500;
+        const FECHA_INICIO_SERVICIO = new Date("2025-06-02T00:00:00");
+        const FECHA_FIN_SERVICIO = new Date("2025-11-30T23:59:59"); // Incluye todo el último día
+
+        // =========================================================================
+        // Funciones de utilidad (copiadas del main.html)
+        // =========================================================================
+
+        // Función para formatear fecha a YYYY-MM-DD
+        function formatoFechaISO(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Función para obtener fecha sin información de tiempo (inicio del día en UTC)
+        function fechaSinHoraUTC(dateString) {
+            const date = new Date(dateString + 'T00:00:00Z');
+            return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+        }
+
+        // =========================================================================
+        // Funciones para cargar datos desde Firebase
+        // =========================================================================
+
+        /**
+         * Carga los datos (registros y configuración) desde Firebase.
+         */
+        async function cargarDatosDesdeLaNube() {
+            try {
+                // Cargar registros
+                const registrosSnapshot = await registrosRef.once('value');
+                const registrosFirebase = registrosSnapshot.val() || {};
+                let registrosArray = [];
+
+                for (let key in registrosFirebase) {
+                    if (registrosFirebase.hasOwnProperty(key)) {
+                        registrosFirebase[key].firebaseKey = key; // Guarda la clave de Firebase
+                        registrosArray.push(registrosFirebase[key]);
+                    }
+                }
+                todosLosRegistros = registrosArray;
+
+                // Cargar configuración
+                const configSnapshot = await configRef.once('value');
+                const configFirebase = configSnapshot.val() || {
+                    excluirSabados: false,
+                    excluirDomingos: false,
+                    diasExcluidos: []
+                };
+
+                excluirSabados = configFirebase.excluirSabados;
+                excluirDomingos = configFirebase.excluirDomingos;
+                diasExcluidos = configFirebase.diasExcluidos || [];
+
+                console.log("Datos cargados desde Firebase:", {
+                    registros: todosLosRegistros,
+                    config: configFirebase
+                });
+
+                actualizarEstadisticasYGraficas(); // Actualiza la UI con los datos cargados
+            } catch (error) {
+                console.error("❌ Error al cargar datos desde Firebase:", error);
+                // No usar alert en esta página para evitar interrupciones visuales
+                // Puedes mostrar un mensaje en la UI si lo deseas
+            }
+        }
+
+        // =========================================================================
+        // Cálculos de Estadísticas y Renderizado de UI
+        // =========================================================================
+
+        function actualizarEstadisticasYGraficas() {
+            let totalHoras = 0;
+            const fechasUnicas = new Set();
+            const horasPorDiaSemana = [0, 0, 0, 0, 0, 0, 0]; // Dom, Lun, Mar, Mié, Jue, Vie, Sáb
+
+            todosLosRegistros.forEach(registro => {
+                const horas = parseFloat(registro.horas);
+                totalHoras += horas;
+                fechasUnicas.add(registro.fecha);
+
+                // Calcular horas por día de la semana
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+                horasPorDiaSemana[diaSemana] += horas;
+            });
+
+            const hoy = fechaSinHoraUTC(formatoFechaISO(new Date()));
+
+            // Horas registradas
+            horasRegistradasSpan.textContent = totalHoras.toFixed(1);
+
+            // Horas restantes
+            const horasRestantes = Math.max(0, HORAS_REQUERIDAS - totalHoras);
+            horasRestantesSpan.textContent = horasRestantes.toFixed(1);
+
+            // Días registrados
+            diasRegistradosSpan.textContent = fechasUnicas.size;
+
+            // Progreso
+            const progreso = Math.min((totalHoras / HORAS_REQUERIDAS) * 100, 100);
+            barraProgresoDiv.style.width = progreso + "%";
+            barraProgresoDiv.textContent = progreso.toFixed(1) + "%";
+            porcentajeProgresoSpan.textContent = progreso.toFixed(1) + "%";
+
+            // Calcular días válidos restantes
+            let diasValidosRestantesCount = 0;
+            let cursorParaDiasValidos = new Date(Math.max(hoy.getTime(), FECHA_INICIO_SERVICIO.getTime()));
+            
+            if (hoy > FECHA_FIN_SERVICIO) {
+                diasValidosRestantesCount = 0;
+            } else {
+                while (cursorParaDiasValidos <= FECHA_FIN_SERVICIO) {
+                    const fechaStr = formatoFechaISO(cursorParaDiasValidos);
+                    const diaSemana = cursorParaDiasValidos.getDay(); // 0 = Domingo, 6 = Sábado
+
+                    let esDiaLaborable = true;
+
+                    // Excluir si la fecha ya tiene registros (para no contar días ya cubiertos)
+                    if (fechasUnicas.has(fechaStr)) {
+                        esDiaLaborable = false;
+                    }
+
+                    if (excluirSabados && diaSemana === 6) { // Sábado
+                        esDiaLaborable = false;
+                    }
+                    if (excluirDomingos && diaSemana === 0) { // Domingo
+                        esDiaLaborable = false;
+                    }
+                    if (diasExcluidos.includes(fechaStr)) {
+                        esDiaLaborable = false;
+                    }
+
+                    if (esDiaLaborable) {
+                        diasValidosRestantesCount++;
+                    }
+                    cursorParaDiasValidos.setDate(cursorParaDiasValidos.getDate() + 1);
+                }
+            }
+            diasValidosRestantesSpan.textContent = diasValidosRestantesCount;
+
+            // Promedio de horas/día
+            const promedioDiario = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
+            promedioHorasSpan.textContent = promedioDiario.toFixed(2);
+
+            // Renderizar gráficas
+            renderizarGraficaHoras(totalHoras, horasRestantes);
+            renderizarGraficaDiasSemana(horasPorDiaSemana);
+        }
+
+        // =========================================================================
+        // Funciones para Gráficas (Chart.js)
+        // =========================================================================
+
+        function renderizarGraficaHoras(totalHoras, horasRestantes) {
+            const ctx = document.getElementById('horasChart').getContext('2d');
+
+            if (horasChartInstance) {
+                horasChartInstance.destroy(); // Destruir instancia anterior si existe
+            }
+
+            horasChartInstance = new Chart(ctx, {
+                type: 'doughnut', // Gráfica de pastel/anillo
+                data: {
+                    labels: ['Horas Registradas', 'Horas Restantes'],
+                    datasets: [{
+                        data: [totalHoras, horasRestantes],
+                        backgroundColor: ['#2ecc71', '#e74c3c'], // Verde para registradas, Rojo para restantes
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw.toFixed(1)} hrs`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%', // Para que sea una gráfica de anillo
+                }
+            });
+        }
+
+        function renderizarGraficaDiasSemana(horasPorDiaSemana) {
+            const ctx = document.getElementById('diasSemanaChart').getContext('2d');
+            const labels = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            if (diasSemanaChartInstance) {
+                diasSemanaChartInstance.destroy(); // Destruir instancia anterior si existe
+            }
+
+            diasSemanaChartInstance = new Chart(ctx, {
+                type: 'bar', // Gráfica de barras
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Horas por Día de la Semana',
+                        data: horasPorDiaSemana,
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.7)', // Rojo (Domingo)
+                            'rgba(52, 152, 219, 0.7)', // Azul (Lunes)
+                            'rgba(46, 204, 113, 0.7)', // Verde (Martes)
+                            'rgba(155, 89, 182, 0.7)', // Púrpura (Miércoles)
+                            'rgba(241, 196, 15, 0.7)', // Amarillo (Jueves)
+                            'rgba(230, 126, 34, 0.7)', // Naranja (Viernes)
+                            'rgba(52, 73, 94, 0.7)'  // Gris oscuro (Sábado)
+                        ],
+                        borderColor: [
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(46, 204, 113, 1)',
+                            'rgba(155, 89, 182, 1)',
+                            'rgba(241, 196, 15, 1)',
+                            'rgba(230, 126, 34, 1)',
+                            'rgba(52, 73, 94, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Horas'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // No mostrar la leyenda de los datasets
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // =========================================================================
+        // Inicialización
+        // =========================================================================
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Asegurarse de que las tarjetas de estadísticas y gráficas estén activas
+            document.getElementById('stats-card').classList.add('active');
+            document.getElementById('charts-card').classList.add('active');
+
+            // Cargar datos y actualizar la vista cuando la página se carga
+            await cargarDatosDesdeLaNube();
+
+            // Configurar listener para que la UI se actualice si los datos cambian en Firebase
+            registrosRef.on('value', (snapshot) => {
+                const registrosFirebase = snapshot.val() || {};
+                let registrosArray = [];
+                for (let key in registrosFirebase) {
+                    if (registrosFirebase.hasOwnProperty(key)) {
+                        registrosFirebase[key].firebaseKey = key;
+                        registrosArray.push(registrosFirebase[key]);
+                    }
+                }
+                todosLosRegistros = registrosArray;
+                actualizarEstadisticasYGraficas();
+            });
+
+            configRef.on('value', (snapshot) => {
+                const configFirebase = snapshot.val() || {
+                    excluirSabados: false,
+                    excluirDomingos: false,
+                    diasExcluidos: []
+                };
+                excluirSabados = configFirebase.excluirSabados;
+                excluirDomingos = configFirebase.excluirDomingos;
+                diasExcluidos = configFirebase.diasExcluidos || [];
+                actualizarEstadisticasYGraficas();
+            });
+        });
+    </script>
+</body>
+
+</html>
