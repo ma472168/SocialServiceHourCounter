@@ -1,0 +1,156 @@
+/* Ejemplo básico de style.css. Tu archivo puede ser mucho más extenso. */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Ajustado para que el contenido no se centre verticalmente si es largo */
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+    box-sizing: border-box; /* Asegura que padding no aumente el ancho total */
+}
+
+h1, h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.input-group input[type="date"],
+.input-group input[type="number"],
+.input-group input[type="text"] {
+    width: calc(100% - 22px); /* Ancho completo menos padding y border */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Importante para el cálculo del ancho */
+}
+
+.input-group input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.btn {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    display: block; /* Para que ocupe todo el ancho disponible */
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+.btn.clear-btn {
+    background-color: #6c757d;
+}
+
+.btn.clear-btn:hover {
+    background-color: #5a6268;
+}
+
+.filters {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px; /* Espacio entre los elementos del filtro */
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+}
+
+.filters input {
+    flex: 1; /* Permite que los inputs tomen espacio equitativo */
+    min-width: 120px; /* Ancho mínimo para los inputs */
+}
+
+.filters button {
+    flex-shrink: 0; /* Evita que los botones se encojan */
+    width: auto; /* Ancho automático para los botones */
+    padding: 8px 15px;
+    font-size: 14px;
+    margin-top: 0; /* Anula el margin-top del .btn */
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+table th {
+    background-color: #f2f2f2;
+    color: #333;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.action-buttons button {
+    background-color: #dc3545; /* Rojo para eliminar */
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    display: inline-block; /* Para que estén en línea */
+    width: auto;
+    margin-right: 5px; /* Espacio entre botones */
+}
+
+.action-buttons button:hover {
+    background-color: #c82333;
+}
+
+.action-buttons button.edit-btn {
+    background-color: #ffc107; /* Amarillo para editar */
+    color: #333;
+}
+
+.action-buttons button.edit-btn:hover {
+    background-color: #e0a800;
+}

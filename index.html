@@ -4,905 +4,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Horas Servicio Social</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <title>Contador de Horas de Servicio Social</title>
+    <link rel="stylesheet" href="style.css">
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            color: #2c3e50;
-        }
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+    <script>
+        // ====================================================================
+        // IMPORTANTE: REEMPLAZA ESTO CON TUS PROPIAS CREDENCIALES DE FIREBASE
+        // (Las obtuviste de la consola de Firebase en el Paso 2)
+        // ====================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCD-A8ZoKMyu4_ZZhD5Vt5BZNG4xxwWT28",
+            authDomain: "socialservicehourcounterapp.firebaseapp.com",
+            projectId: "socialservicehourcounterapp",
+            storageBucket: "socialservicehourcounterapp.firebasestorage.app",
+            messagingSenderId: "588272545302",
+            appId: "1:588272545302:web:03523e68c524985a900f37",
+            measurementId: "G-MVSYDEM168"
+        };
 
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px 0;
-            border-bottom: 2px solid #3498db;
-        }
 
-        h1 {
-            color: #2c3e50;
-            font-size: 2.2rem;
-            margin-bottom: 10px;
-        }
+        // Inicializa Firebase con tu configuración
+        firebase.initializeApp(firebaseConfig);
 
-        .info-box {
-            background: #e1f5fe;
-            border-left: 4px solid #039be5;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 0 8px 8px 0;
-            font-size: 1rem;
-        }
+        // Obtén una referencia a la Realtime Database
+        // Esta variable 'database' será usada por tu script principal (SocialServiceHourCounter.js)
+        const database = firebase.database();
 
-        .info-box strong {
-            color: #0277bd;
-        }
+        // Puedes poner aquí cualquier otra variable global o código que necesites antes
+        // de que se cargue tu script principal.
+        // Las URLs antiguas de Apps Script o del proxy CORS YA NO SON NECESARIAS.
+        // Borra cualquier línea como:
+        // const GOOGLE_APP_SCRIPT_URL = '...';
+        // const YOUR_ACTUAL_APP_SCRIPT_URL = '...';
 
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            margin: 25px 0;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            border: 1px solid #e0e6ed;
-        }
-
-        .card-header {
-            padding: 18px 25px;
-            background: linear-gradient(to right, #3498db, #2c3e50);
-            color: white;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.3rem;
-        }
-
-        .card-header:hover {
-            background: linear-gradient(to right, #2980b9, #1a252f);
-        }
-
-        .card-header::after {
-            content: "▼";
-            font-size: 0.9rem;
-            transition: transform 0.3s;
-        }
-
-        .card.active .card-header::after {
-            transform: rotate(180deg);
-        }
-
-        .card-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease, padding 0.3s ease;
-            padding: 0 25px;
-        }
-
-        .card.active .card-content {
-            max-height: 2000px;
-            padding: 25px;
-        }
-
-        label {
-            display: block;
-            margin: 15px 0 8px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        input[type="date"],
-        input[type="number"],
-        input[type="text"],
-        input[type="file"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border 0.3s;
-        }
-
-        input:focus {
-            border-color: #3498db;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-
-        button {
-            padding: 12px 24px;
-            margin: 10px 0;
-            background: #3498db;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s;
-            font-size: 1rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        button:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        .btn-success {
-            background: #2ecc71;
-        }
-
-        .btn-success:hover {
-            background: #27ae60;
-        }
-
-        .registro-list {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .registro-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-        }
-
-        .registro-item:nth-child(odd) {
-            background-color: #f9f9f9;
-        }
-
-        .registro-item:hover {
-            background-color: #f0f7ff;
-        }
-
-        .registro-details {
-            flex: 1;
-        }
-
-        .registro-date {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 1.1rem;
-        }
-
-        .registro-note {
-            color: #7f8c8d;
-            margin-top: 5px;
-            font-size: 0.95rem;
-        }
-
-        .registro-hours {
-            font-weight: bold;
-            font-size: 1.3rem;
-            color: #3498db;
-            min-width: 80px;
-            text-align: right;
-        }
-
-        .stats-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            flex: 1;
-            min-width: 170px;
-            color: white;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-title {
-            display: block;
-            font-size: 1rem;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            display: block;
-        }
-
-        .stat-horas {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        }
-
-        .stat-restantes {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        }
-
-        .stat-dias {
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-        }
-
-        .stat-promedio {
-            background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
-        }
-
-        .stat-validos {
-            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
-        }
-
-        .progress-container {
-            margin: 30px 0;
-        }
-
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .progress-bar {
-            border: 1px solid #ccc;
-            width: 100%;
-            height: 40px;
-            background: #eee;
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-inner {
-            height: 100%;
-            background: linear-gradient(90deg, #2ecc71, #1abc9c);
-            width: 0%;
-            transition: width 0.8s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.1rem;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        }
-
-        .excluidos-container {
-            margin-top: 25px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-
-        .excluidos-list {
-            margin: 15px 0;
-            list-style: none;
-        }
-
-        .excluido-item {
-            padding: 10px 15px;
-            border-radius: 6px;
-            background: #fff;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid #eee;
-        }
-
-        .fecha-input-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .fecha-input-group input {
-            flex: 1;
-        }
-
-        .fecha-input-group button {
-            width: auto;
-        }
-
-        .empty-message {
-            text-align: center;
-            padding: 30px;
-            color: #7f8c8d;
-            font-style: italic;
-        }
-
-        .highlight {
-            background-color: #fffde7;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        @media (max-width: 768px) {
-            .stats-container {
-                flex-direction: column;
-            }
-
-            .stat-card {
-                min-width: 100%;
-            }
-
-            .fecha-input-group {
-                flex-direction: column;
-            }
-
-            .registro-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .registro-hours {
-                text-align: left;
-            }
-        }
-    </style>
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <header>
-            <h1>📅 Registro de Horas de Servicio Social</h1>
-            <div class="info-box">
-                <p><strong>Periodo:</strong> 02/06/2025 al 30/11/2025 | <strong>Total días:</strong> 182 | <strong>Días
-                        laborables:</strong> 130 | <strong>Horas requeridas:</strong> 500</p>
+        <h1>Contador de Horas de Servicio Social</h1>
+
+        <div class="config-section card">
+            <h2>Configuración Global</h2>
+            <div class="input-group">
+                <input type="checkbox" id="excluirSabados">
+                <label for="excluirSabados">Excluir Sábados</label>
             </div>
-        </header>
-
-        <div class="card active">
-            <div class="card-header" onclick="toggleCard(this.parentElement)">
-                📝 Formulario de Registro
+            <div class="input-group">
+                <input type="checkbox" id="excluirDomingos">
+                <label for="excluirDomingos">Excluir Domingos</label>
             </div>
-            <div class="card-content">
-                <form id="registro-form">
-                    <label for="fecha">Fecha:</label>
-                    <input type="date" id="fecha" required min="2025-06-02" max="2025-11-30">
-
-                    <label for="horas">Horas trabajadas:</label>
-                    <input type="number" id="horas" min="0.5" step="0.5" required placeholder="Ej: 4.5">
-
-                    <label for="nota">Nota (opcional):</label>
-                    <input type="text" id="nota" placeholder="Descripción de la actividad">
-
-                    <button type="submit" class="btn-success">➕ Registrar Horas</button>
-                </form>
+            <div class="input-group">
+                <label for="diasExcluidosInput">Días a Excluir (YYYY-MM-DD, separados por comas):</label>
+                <input type="text" id="diasExcluidosInput" placeholder="Ej: 2023-12-25, 2024-01-01">
             </div>
+            <button id="guardarConfigBtn" class="btn">Guardar Configuración</button>
         </div>
 
-        <div class="card active">
-            <div class="card-header" onclick="toggleCard(this.parentElement)">
-                📊 Estadísticas
+        <div class="input-section card">
+            <h2>Registrar Horas</h2>
+            <div class="input-group">
+                <label for="fecha">Fecha:</label>
+                <input type="date" id="fecha" required>
             </div>
-            <div class="card-content">
-                <div class="stats-container">
-                    <div class="stat-card stat-horas">
-                        <span class="stat-title">Horas registradas</span>
-                        <span class="stat-value" id="horas-registradas">0.0</span>
-                    </div>
-                    <div class="stat-card stat-restantes">
-                        <span class="stat-title">Horas restantes</span>
-                        <span class="stat-value" id="horas-restantes">500.0</span>
-                    </div>
-                    <div class="stat-card stat-dias">
-                        <span class="stat-title">Días registrados</span>
-                        <span class="stat-value" id="dias-registrados">0</span>
-                    </div>
-                    <div class="stat-card stat-promedio">
-                        <span class="stat-title">Prom. horas/día</span>
-                        <span class="stat-value" id="promedio-horas">0.00</span>
-                    </div>
-                    <div class="stat-card stat-validos">
-                        <span class="stat-title">Días válidos restantes</span>
-                        <span class="stat-value" id="dias-validos-restantes">130</span>
-                    </div>
-                </div>
-
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>Progreso del servicio social</span>
-                        <span id="porcentaje-progreso">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div id="barra-progreso" class="progress-inner">0%</div>
-                    </div>
-                </div>
+            <div class="input-group">
+                <label for="horas">Horas:</label>
+                <input type="number" id="horas" min="0.5" step="0.5" required>
             </div>
+            <div class="input-group">
+                <label for="nota">Nota (Opcional):</label>
+                <input type="text" id="nota" placeholder="Descripción de la actividad">
+            </div>
+            <button id="agregarHorasBtn" class="btn">Agregar Horas</button>
         </div>
 
-        <div class="card">
-            <div class="card-header" onclick="toggleCard(this.parentElement)">
-                📋 Registros
+        <div class="records-section card">
+            <h2>Registros de Horas</h2>
+            <p>Total de horas acumuladas: <span id="totalHoras">0</span></p>
+            <p>Días laborables estimados: <span id="diasLaborablesEstimados">0</span></p>
+            <div class="filters">
+                <input type="date" id="filtroFechaInicio" placeholder="Fecha Inicio">
+                <input type="date" id="filtroFechaFin" placeholder="Fecha Fin">
+                <button id="aplicarFiltroBtn" class="btn">Aplicar Filtro</button>
+                <button id="limpiarFiltroBtn" class="btn clear-btn">Limpiar Filtro</button>
             </div>
-            <div class="card-content">
-                <ul id="lista-registros" class="registro-list">
-                    <li class="empty-message">No hay registros aún. Agrega tu primera entrada usando el formulario.</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header" onclick="toggleCard(this.parentElement)">
-                💾 Importar / Exportar
-            </div>
-            <div class="card-content">
-                <button onclick="exportarJSON()" class="btn-success">⬇️ Exportar JSON</button>
-                <p style="margin: 20px 0 10px; font-size: 1rem;">Importar registros:</p>
-                <input type="file" id="importar-json" accept=".json">
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header" onclick="toggleCard(this.parentElement)">
-                ⚙️ Opciones
-            </div>
-            <div class="card-content">
-                <button onclick="borrarRegistros()" class="btn-danger">🗑️ Borrar todos los registros</button>
-                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-
-                <div class="excluidos-container">
-                    <h3 style="margin-bottom: 15px;">🗓️ Días a excluir del cálculo</h3>
-                    <p>Agregar días que no trabajarás (vacaciones, días festivos, etc.):</p>
-
-                    <div class="fecha-input-group">
-                        <input type="date" id="fecha-excluida" min="2025-06-02" max="2025-11-30">
-                        <button type="button" onclick="agregarFechaExcluida()">➕ Añadir</button>
-                    </div>
-
-                    <ul id="lista-excluidos" class="excluidos-list">
-                        <li class="empty-message">No hay días excluidos</li>
-                    </ul>
-
-                    <div style="margin-top: 20px;">
-                        <label><input type="checkbox" id="excluir-sabados"> Excluir sábados</label><br>
-                        <label><input type="checkbox" id="excluir-domingos"> Excluir domingos</label>
-                    </div>
-                </div>
-            </div>
+            <table id="horasTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Horas</th>
+                        <th>Nota</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <script>
-        // Variables globales
-        let registros = [];
-        let diasExcluidos = [];
-
-        // PASO 1: Guarda tu URL original de Google Apps Script en una variable separada
-        const YOUR_ACTUAL_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys5Q6yRwjVSZUufkZV3H2wwPjVn2f6DKY5szX17KTz2Z4KSSIc_1dD0r5a8y25uxLnLQ/exec'; // <--- ¡Asegúrate de que esta sea TU URL de Apps Script!
-
-        // PASO 2: Combina la URL del proxy con tu URL de Apps Script
-        const GOOGLE_APP_SCRIPT_URL = 'https://cors-anywhere.herokuapp.com/' + YOUR_ACTUAL_APP_SCRIPT_URL;
-        
-        // Función para formatear fecha a YYYY-MM-DD (local)
-        function formatoFechaISO(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        // Función para obtener fecha sin tiempo
-        function fechaSinHora(date) {
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        }
-
-        // Toggle para mostrar/ocultar tarjetas
-        function toggleCard(card) {
-            card.classList.toggle("active");
-        }
-
-        // Manejar envío del formulario
-        document.getElementById("registro-form").addEventListener("submit", async function (e) {
-            e.preventDefault();
-
-            // Obtener valores del formulario
-            const fecha = document.getElementById("fecha").value;
-            const horas = parseFloat(document.getElementById("horas").value);
-            const nota = document.getElementById("nota").value;
-
-            // Validaciones
-            if (!fecha) {
-                alert("❌ Por favor, selecciona una fecha.");
-                return;
-            }
-
-            if (isNaN(horas) || horas <= 0) {
-                alert("❌ Por favor, ingresa un número válido de horas.");
-                return;
-            }
-
-            const fechaMin = new Date("2025-06-02");
-            const fechaMax = new Date("2025-11-30");
-            const fechaSel = new Date(fecha);
-
-            if (fechaSel < fechaMin) {
-                alert("❌ La fecha debe ser el 2 de junio de 2025 o posterior.");
-                return;
-            }
-
-            if (fechaSel > fechaMax) {
-                alert("❌ La fecha debe ser el 30 de noviembre de 2025 o anterior.");
-                return;
-            }
-
-            // Agregar registro
-            registros.push({ fecha, horas, nota });
-
-            // Actualizar interfaz y almacenamiento
-            actualizarVista();
-            await guardarDatosEnLaNube();
-
-            // Resetear formulario
-            this.reset();
-
-            // Mostrar mensaje de éxito
-            // alert(`✅ ¡${horas} horas registradas para ${fecha} correctamente!`);
-        });
-
-        // Exportar datos a JSON
-        function exportarJSON() {
-            if (registros.length === 0) {
-                alert("⚠️ No hay registros para exportar.");
-                return;
-            }
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(registros));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", "registros_servicio_social.json");
-            dl.click();
-        }
-
-        document.getElementById("importar-json").addEventListener("change", function (event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function (e) { // Marca como async
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data)) {
-                        registros = data; // Asignar los registros importados
-
-                        // Si tu JSON importado contiene 'diasExcluidos' o 'excluirSabados/Domingos',
-                        // puedes intentar cargarlos también. Si no, se mantendrán los de la nube o los predeterminados.
-                        // Para simplificar, solo importamos los registros y las configuraciones se mantienen del lado de la nube.
-
-                        actualizarVista();
-                        await guardarDatosEnLaNube(); // <-- CAMBIO AQUÍ: Guardar los datos importados en la nube
-                        alert(`✅ ${data.length} registros importados y guardados en la nube!`);
-                    } else {
-                        throw new Error("Formato inválido");
-                    }
-                } catch (error) {
-                    alert("❌ Archivo JSON inválido. Por favor, selecciona un archivo válido.");
-                }
-            };
-            reader.readAsText(file);
-
-            this.value = "";
-        });
-
-        function borrarRegistros() {
-            if (registros.length === 0) {
-                alert("ℹ️ No hay registros para borrar.");
-                return;
-            }
-
-            if (confirm("⚠️ ¿Estás seguro de que quieres borrar TODOS los registros? Esta acción no se puede deshacer.")) {
-                registros = [];
-                diasExcluidos = []; // También borrar días excluidos al reiniciar
-                document.getElementById("excluir-sabados").checked = false;
-                document.getElementById("excluir-domingos").checked = false;
-
-                actualizarVista();
-                guardarDatosEnLaNube(); // <-- CAMBIO AQUÍ (llama para limpiar la nube también)
-                alert("🗑️ Todos los registros han sido eliminados.");
-            }
-        }
-
-        async function guardarDatosEnLaNube() {
-            // Preparar los datos que quieres enviar
-            const dataToSave = {
-                registros: registros, // Tu array de registros
-                diasExcluidos: diasExcluidos, // Tu array de días excluidos
-                excluirSabados: document.getElementById("excluir-sabados").checked,
-                excluirDomingos: document.getElementById("excluir-domingos").checked
-            };
-
-            try {
-                const response = await fetch(GOOGLE_APP_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors', // Necesario para solicitudes entre orígenes
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(dataToSave)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Error al guardar datos: ${response.status} ${response.statusText} - ${errorText}`);
-                }
-
-                const result = await response.json();
-                console.log('Datos guardados con éxito en Google Sheet:', result);
-                // Puedes agregar un alert o un mensaje temporal de éxito aquí
-                // alert('✅ Datos guardados en la nube!');
-            } catch (error) {
-                console.error('❌ Error al guardar datos en la nube:', error);
-                alert('❌ Hubo un error al guardar los datos en la nube. Revisa la consola para más detalles.');
-            }
-        }
-
-        // Actualizar toda la interfaz
-        function actualizarVista() {
-            // Actualizar lista de registros
-            const lista = document.getElementById("lista-registros");
-
-            // Si no hay registros
-            if (registros.length === 0) {
-                lista.innerHTML = '<li class="empty-message">No hay registros aún. Agrega tu primera entrada usando el formulario.</li>';
-            } else {
-                // Ordenar registros por fecha (más reciente primero)
-                registros.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-                // Crear elementos de lista
-                lista.innerHTML = "";
-                registros.forEach(registro => {
-                    const li = document.createElement("li");
-                    li.className = "registro-item";
-
-                    // Formatear fecha para mostrar
-                    const fechaObj = new Date(registro.fecha);
-                    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-
-                    li.innerHTML = `
-                        <div class="registro-details">
-                            <div class="registro-date">${fechaFormateada}</div>
-                            <div class="registro-note">${registro.nota || "Sin descripción"}</div>
-                        </div>
-                        <div class="registro-hours">${registro.horas} hrs</div>
-                    `;
-
-                    lista.appendChild(li);
-                });
-            }
-
-            // Calcular horas totales
-            let totalHoras = 0;
-            const fechasUnicas = new Set();
-
-            registros.forEach(registro => {
-                totalHoras += registro.horas;
-                fechasUnicas.add(registro.fecha);
-            });
-
-            // Actualizar estadísticas básicas
-            document.getElementById("horas-registradas").textContent = totalHoras.toFixed(1);
-            const horasRestantes = Math.max(0, 500 - totalHoras);
-            document.getElementById("horas-restantes").textContent = horasRestantes.toFixed(1);
-            document.getElementById("dias-registrados").textContent = fechasUnicas.size;
-
-            // Actualizar barra de progreso
-            const progreso = Math.min((totalHoras / 500) * 100, 100);
-            const barra = document.getElementById("barra-progreso");
-            barra.style.width = progreso + "%";
-            barra.textContent = progreso.toFixed(1) + "%";
-            document.getElementById("porcentaje-progreso").textContent = progreso.toFixed(1) + "%";
-
-            // Calcular días válidos restantes
-            const hoy = fechaSinHora(new Date());
-            const fin = fechaSinHora(new Date(2025, 10, 30)); // 30 de noviembre (mes 10)
-            const inicio = fechaSinHora(new Date(2025, 5, 2)); // 2 de junio (mes 5)
-
-            let diasValidos = 0;
-            let cursor = new Date(Math.max(hoy, inicio));
-
-            const excluirSab = document.getElementById("excluir-sabados").checked;
-            const excluirDom = document.getElementById("excluir-domingos").checked;
-
-            // Calcular días válidos restantes
-            while (cursor <= fin) {
-                const fechaStr = formatoFechaISO(cursor);
-                const dia = cursor.getDay(); // 0: Domingo, 6: Sábado
-                const esSabado = dia === 6;
-                const esDomingo = dia === 0;
-
-                // Verificar si el día debe incluirse
-                if (!diasExcluidos.includes(fechaStr)) {
-                    if (!(excluirSab && esSabado) && !(excluirDom && esDomingo)) {
-                        diasValidos++;
-                    }
-                }
-
-                cursor.setDate(cursor.getDate() + 1);
-            }
-
-            // Actualizar estadísticas
-            document.getElementById("dias-validos-restantes").textContent = diasValidos;
-            const promedioDiario = diasValidos > 0 ? (horasRestantes / diasValidos) : 0;
-            document.getElementById("promedio-horas").textContent = promedioDiario.toFixed(2);
-
-            // Actualizar lista de excluidos
-            actualizarListaExcluidos();
-        }
-
-        // Agregar fecha excluida
-        function agregarFechaExcluida() {
-            const fecha = document.getElementById("fecha-excluida").value;
-
-            if (!fecha) {
-                alert("❌ Por favor, selecciona una fecha.");
-                return;
-            }
-
-            if (diasExcluidos.includes(fecha)) {
-                alert("⚠️ Esta fecha ya está en la lista de días excluidos.");
-                return;
-            }
-
-            // Validar rango de fecha
-            const fechaMin = new Date("2025-06-02");
-            const fechaMax = new Date("2025-11-30");
-            const fechaSel = new Date(fecha);
-
-            if (fechaSel < fechaMin || fechaSel > fechaMax) {
-                alert("❌ La fecha debe estar entre el 02/06/2025 y el 30/11/2025.");
-                return;
-            }
-
-            diasExcluidos.push(fecha);
-            actualizarVista();
-            guardarDatosEnLaNube(); 
-            document.getElementById("fecha-excluida").value = "";
-        }
-
-        // Actualizar lista de días excluidos
-        function actualizarListaExcluidos() {
-            const lista = document.getElementById("lista-excluidos");
-
-            if (diasExcluidos.length === 0) {
-                lista.innerHTML = '<li class="empty-message">No hay días excluidos</li>';
-                return;
-            }
-
-            lista.innerHTML = "";
-            diasExcluidos.forEach((fecha, index) => {
-                const li = document.createElement("li");
-                li.className = "excluido-item";
-
-                const fechaObj = new Date(fecha);
-                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                li.innerHTML = `
-                    <span>${fechaFormateada}</span>
-                    <button class="btn-danger" onclick="eliminarFechaExcluida(${index})">Eliminar</button>
-                `;
-
-                lista.appendChild(li);
-            });
-        }
-
-        // Eliminar fecha excluida
-        function eliminarFechaExcluida(index) {
-            diasExcluidos.splice(index, 1);
-            actualizarVista();
-            guardarDatosEnLaNube(); 
-        }
-
-        async function cargarDatosDesdeLaNube() {
-            try {
-                const response = await fetch(GOOGLE_APP_SCRIPT_URL, {
-                    method: 'GET',
-                    mode: 'cors', // Necesario para solicitudes entre orígenes
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Error al cargar datos: ${response.status} ${response.statusText} - ${errorText}`);
-                }
-
-                const data = await response.json();
-                console.log('Datos cargados desde Google Sheet:', data);
-
-                // Asignar los datos cargados a tus variables globales
-                registros = data.registros || [];
-                diasExcluidos = data.diasExcluidos || [];
-                document.getElementById("excluir-sabados").checked = data.excluirSabados === true; // Asegurar booleano
-                document.getElementById("excluir-domingos").checked = data.excluirDomingos === true; // Asegurar booleano
-
-                actualizarVista(); // Actualizar la UI con los datos cargados
-            } catch (error) {
-                console.error('❌ Error al cargar datos desde la nube:', error);
-                alert('❌ No se pudieron cargar los datos desde la nube. Revisa la consola para más detalles. Podrían no haber datos aún.');
-                // Puedes decidir si cargar desde localStorage como fallback aquí si lo deseas
-                // Pero para simplificar, si hay un error en la nube, se inicia sin datos o con los que ya tenía.
-            }
-        }
-
-        // Event listeners para opciones de exclusión
-        document.getElementById("excluir-sabados").addEventListener("change", function () {
-            actualizarVista();
-            guardarDatosEnLaNube();
-        });
-
-        document.getElementById("excluir-domingos").addEventListener("change", function () {
-            actualizarVista();
-            guardarDatosEnLaNube();
-        });
-
-        // Inicializar aplicación
-        document.addEventListener("DOMContentLoaded", function () {
-            cargarDatosDesdeLaNube();
-        });
-    </script>
-    <footer>
-        <h1>📅 Registro de Horas de Servicio Social</h1>
-        <div class="info-box">
-            <p>
-                Hecho por. <strong>Cesar Martinez Andrade</strong><br>
-                Correo. <strong>ma472168@uaeh.edu.mx</strong><br>
-                GitHub. <strong>github.com/xenredda</strong>
-            </p>
-            <p>
-
-            </p>
-        </div>
-    </footer>
+    <script src="SocialServiceHourCounter.js"></script>
 </body>
 
 </html>
