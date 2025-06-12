@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas de Servicio Social</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <style>
+        /*
+        * CSS para la página de estadísticas del servicio social
+        * Autor: ma472168
+        */
+
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --text-color: #333;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow-light: 0 4px 8px rgba(0, 0, 0, 0.05);
+            --shadow-medium: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            text-align: center;
+            margin-bottom: 20px;
+            border-left: 8px solid var(--primary-color);
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 2.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .info-box {
+            background-color: #e9f7ef;
+            color: #28a745;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            border: 1px solid #d4edda;
+            text-align: left;
+        }
+
+        .info-box p {
+            margin: 0;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInMoveUp 0.6s ease forwards;
+        }
+
+        .card.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes fadeInMoveUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 25px;
+            font-size: 1.3em;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header.no-toggle {
+            cursor: default;
+        }
+
+        .card-content {
+            padding: 25px;
+            display: block;
+            /* Siempre visible en esta página */
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #a7b7c7 0%, #8da2b3 100%);
+            /* Gris azulado por defecto */
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow-medium);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 100px;
+        }
+
+        .stat-card.stat-horas {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        .stat-card.stat-restantes {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .stat-card.stat-dias {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+
+        .stat-card.stat-promedio {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .stat-card.stat-validos {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+
+        .stat-card.stat-total-avg {
+            background: linear-gradient(135deg, #6c5ce7 0%, #4834d4 100%);
+            /* Un color púrpura/azul oscuro */
+        }
+
+
+        .stat-title {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2.2em;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .progress-container {
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-top: 20px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .progress-bar {
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            height: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #4CAF50, #8bc34a);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: width 0.5s ease-out;
+        }
+
+        .chart-container {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fdfdfd;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-container h3 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        /* Recent Records List */
+        .recent-list,
+        .search-results-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .recent-item,
+        .search-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .recent-item:last-child,
+        .search-item:last-child {
+            border-bottom: none;
+        }
+
+        .recent-item:hover,
+        .search-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .recent-details,
+        .search-details {
+            flex-grow: 1;
+        }
+
+        .recent-date,
+        .search-date {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+
+        .recent-note,
+        .search-note {
+            color: var(--text-color);
+            font-size: 0.95em;
+        }
+
+        .recent-hours,
+        .search-hours {
+            font-weight: bold;
+            color: var(--secondary-color);
+            font-size: 1.1em;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* Search Bar Styles */
+        .search-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input-group input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input-group input[type="text"]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .search-input-group button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        .search-input-group button:hover {
+            transform: translateY(-1px);
+        }
+
+        .search-input-group button:active {
+            transform: translateY(0);
+        }
+
+
+        .search-input-group button#search-button {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .search-input-group button#search-button:hover {
+            background-color: #2980b9;
+        }
+
+        .search-input-group button.btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .search-input-group button.btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+
+        /* Media Queries para Responsividad */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .card-header {
+                font-size: 1.1em;
+                padding: 12px 20px;
+            }
+
+            .card-content {
+                padding: 20px;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 15px;
+            }
+
+            .stat-value {
+                font-size: 1.8em;
+            }
+
+            .stat-title {
+                font-size: 0.8em;
+            }
+
+            .search-input-group {
+                flex-direction: column;
+            }
+
+            .search-input-group button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header {
+                padding: 20px 15px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                min-height: 80px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Estadísticas de Servicio Social</h1>
+            <div class="info-box">
+                <p><strong>Periodo:</strong> 02/06/2025 al 30/11/2025 | <strong>Total días:</strong> 182 |
+                    <strong>Días
+                        laborables:</strong> 130 | <strong>Horas requeridas:</strong> 500</p>
+            </div>
+        </header>
+
+        <div class="card active" id="stats-card">
+            <div class="card-header no-toggle">
+                Resumen General
+            </div>
+            <div class="card-content">
+                <div class="stats-container">
+                    <div class="stat-card stat-horas">
+                        <span class="stat-title">Horas registradas</span>
+                        <span class="stat-value" id="horas-registradas">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-restantes">
+                        <span class="stat-title">Horas restantes</span>
+                        <span class="stat-value" id="horas-restantes">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-dias">
+                        <span class="stat-title">Días registrados</span>
+                        <span class="stat-value" id="dias-registrados">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-promedio">
+                        <span class="stat-title">Prom. horas/día (Rest.)</span>
+                        <span class="stat-value" id="promedio-horas">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-validos">
+                        <span class="stat-title">Días válidos restantes</span>
+                        <span class="stat-value" id="dias-validos-restantes">Cargando...</span>
+                    </div>
+                    <div class="stat-card stat-total-avg">
+                        <span class="stat-title">Prom. Horas/Día (Total)</span>
+                        <span class="stat-value" id="promedio-horas-total">Cargando...</span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Progreso del servicio social</span>
+                        <span id="porcentaje-progreso">Cargando...</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="barra-progreso" class="progress-inner">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="charts-card">
+            <div class="card-header no-toggle">
+                Visualización de Datos
+            </div>
+            <div class="card-content">
+                <div class="chart-container">
+                    <h3>Progreso de Horas</h3>
+                    <canvas id="horasChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Horas Registradas por Día de la Semana</h3>
+                    <canvas id="diasSemanaChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Promedio de Horas por Día de la Semana</h3>
+                    <canvas id="promedioDiasSemanaChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="recent-records-card">
+            <div class="card-header no-toggle">
+                🕒 Agregado Recientemente
+            </div>
+            <div class="card-content">
+                <ul id="lista-recientes" class="recent-list">
+                    <li class="empty-message">No hay registros recientes.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card" id="search-card">
+            <div class="card-header no-toggle">
+                🔍 Buscar Registros
+            </div>
+            <div class="card-content">
+                <div class="search-input-group">
+                    <input type="text" id="search-input" placeholder="Buscar por fecha, horas o descripción...">
+                    <button id="search-button">Buscar</button>
+                    <button id="clear-search-button" class="btn-danger">Limpiar</button>
+                </div>
+                <ul id="search-results-list" class="search-results-list">
+                    <li class="empty-message">Escribe algo para empezar a buscar.</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyCD-A8ZoKMyu4_ZZhD5Vt5BZNG4xxwWT28",
+          authDomain: "socialservicehourcounterapp.firebaseapp.com",
+          projectId: "socialservicehourcounterapp",
+          storageBucket: "socialservicehourcounterapp.firebasestorage.app",
+          messagingSenderId: "588272545302",
+          appId: "1:588272545302:web:03523e68c524985a900f37",
+          measurementId: "G-MVSYDEM168"
+        };
+
+        // Inicializa Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Obtén una referencia a la Realtime Database
+        const database = firebase.database();
+
+        // =========================================================================
+        // Variables Globales y Referencias a Firebase
+        // =========================================================================
+
+        const registrosRef = database.ref('registros'); // Referencia al nodo 'registros' en Firebase
+        const configRef = database.ref('config');      // Referencia al nodo 'config' en Firebase
+
+        let todosLosRegistros = []; // Almacena los registros cargados de Firebase
+        let diasExcluidos = [];     // Días específicos a excluir
+        let excluirSabados = false;
+        let excluirDomingos = false;
+
+        // === Referencias a elementos del DOM para estadísticas ===
+        const horasRegistradasSpan = document.getElementById('horas-registradas');
+        const horasRestantesSpan = document.getElementById('horas-restantes');
+        const diasRegistradosSpan = document.getElementById('dias-registrados');
+        const promedioHorasSpan = document.getElementById('promedio-horas');
+        const diasValidosRestantesSpan = document.getElementById('dias-validos-restantes');
+        const porcentajeProgresoSpan = document.getElementById('porcentaje-progreso');
+        const barraProgresoDiv = document.getElementById('barra-progreso');
+        const promedioHorasTotalSpan = document.getElementById('promedio-horas-total'); // Nueva referencia
+
+        // Referencias para las gráficas
+        let horasChartInstance = null;
+        let diasSemanaChartInstance = null;
+        let promedioDiasSemanaChartInstance = null; // Nueva instancia para la nueva gráfica
+
+        // Referencia para la lista de recientes
+        const listaRecientesUL = document.getElementById('lista-recientes');
+
+        // Referencias para el buscador
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const clearSearchButton = document.getElementById('clear-search-button');
+        const searchResultsList = document.getElementById('search-results-list');
+
+        // =========================================================================
+        // Constantes de Periodo de Servicio Social (copiadas del main.html)
+        // =========================================================================
+        const HORAS_REQUERIDAS = 500;
+        const FECHA_INICIO_SERVICIO = new Date("2025-06-02T00:00:00");
+        const FECHA_FIN_SERVICIO = new Date("2025-11-30T23:59:59"); // Incluye todo el último día
+
+        // =========================================================================
+        // Funciones de utilidad (copiadas del main.html)
+        // =========================================================================
+
+        // Función para formatear fecha a YYYY-MM-DD
+        function formatoFechaISO(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Función para obtener fecha sin información de tiempo (inicio del día en UTC)
+        function fechaSinHoraUTC(dateString) {
+            const date = new Date(dateString + 'T00:00:00Z');
+            return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+        }
+
+        // =========================================================================
+        // Funciones para cargar datos desde Firebase
+        // =========================================================================
+
+        /**
+         * Carga los datos (registros y configuración) desde Firebase.
+         */
+        async function cargarDatosDesdeLaNube() {
+            try {
+                // Cargar registros
+                const registrosSnapshot = await registrosRef.once('value');
+                const registrosFirebase = registrosSnapshot.val() || {};
+                let registrosArray = [];
+
+                for (let key in registrosFirebase) {
+                    if (registrosFirebase.hasOwnProperty(key)) {
+                        registrosFirebase[key].firebaseKey = key; // Guarda la clave de Firebase
+                        registrosArray.push(registrosFirebase[key]);
+                    }
+                }
+                todosLosRegistros = registrosArray;
+
+                // Cargar configuración
+                const configSnapshot = await configRef.once('value');
+                const configFirebase = configSnapshot.val() || {
+                    excluirSabados: false,
+                    excluirDomingos: false,
+                    diasExcluidos: []
+                };
+
+                excluirSabados = configFirebase.excluirSabados;
+                excluirDomingos = configFirebase.excluirDomingos;
+                diasExcluidos = configFirebase.diasExcluidos || [];
+
+                console.log("Datos cargados desde Firebase:", {
+                    registros: todosLosRegistros,
+                    config: configFirebase
+                });
+
+                actualizarEstadisticasYGraficas(); // Actualiza la UI con los datos cargados
+                performSearch(); // Actualiza el buscador con los datos cargados (inicialmente vacío)
+            } catch (error) {
+                console.error("❌ Error al cargar datos desde Firebase:", error);
+                // No usar alert en esta página para evitar interrupciones visuales
+                // Puedes mostrar un mensaje en la UI si lo deseas
+            }
+        }
+
+        // =========================================================================
+        // Cálculos de Estadísticas y Renderizado de UI
+        // =========================================================================
+
+        function actualizarEstadisticasYGraficas() {
+            let totalHoras = 0;
+            const fechasUnicas = new Set();
+            const horasPorDiaSemana = [0, 0, 0, 0, 0, 0, 0]; // Dom, Lun, Mar, Mié, Jue, Vie, Sáb
+            const conteoDiasConRegistro = [0, 0, 0, 0, 0, 0, 0]; // Para el promedio de horas por día de la semana
+
+            todosLosRegistros.forEach(registro => {
+                const horas = parseFloat(registro.horas);
+                totalHoras += horas;
+                fechasUnicas.add(registro.fecha);
+
+                // Calcular horas por día de la semana
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+                horasPorDiaSemana[diaSemana] += horas;
+                conteoDiasConRegistro[diaSemana]++; // Incrementar contador para el promedio
+            });
+
+            const hoy = fechaSinHoraUTC(formatoFechaISO(new Date()));
+
+            // Horas registradas
+            horasRegistradasSpan.textContent = totalHoras.toFixed(1);
+
+            // Horas restantes
+            const horasRestantes = Math.max(0, HORAS_REQUERIDAS - totalHoras);
+            horasRestantesSpan.textContent = horasRestantes.toFixed(1);
+
+            // Días registrados
+            diasRegistradosSpan.textContent = fechasUnicas.size;
+
+            // Promedio de horas/día (total entre todos los días registrados)
+            const promedioGeneralPorDiaRegistrado = fechasUnicas.size > 0 ? (totalHoras / fechasUnicas.size) : 0;
+            promedioHorasTotalSpan.textContent = promedioGeneralPorDiaRegistrado.toFixed(2);
+
+
+            // Progreso
+            const progreso = Math.min((totalHoras / HORAS_REQUERIDAS) * 100, 100);
+            barraProgresoDiv.style.width = progreso + "%";
+            barraProgresoDiv.textContent = progreso.toFixed(1) + "%";
+            porcentajeProgresoSpan.textContent = progreso.toFixed(1) + "%";
+
+            // Calcular días válidos restantes
+            let diasValidosRestantesCount = 0;
+            let cursorParaDiasValidos = new Date(Math.max(hoy.getTime(), FECHA_INICIO_SERVICIO.getTime()));
+
+            if (hoy > FECHA_FIN_SERVICIO) {
+                diasValidosRestantesCount = 0;
+            } else {
+                while (cursorParaDiasValidos <= FECHA_FIN_SERVICIO) {
+                    const fechaStr = formatoFechaISO(cursorParaDiasValidos);
+                    const diaSemana = cursorParaDiasValidos.getDay(); // 0 = Domingo, 6 = Sábado
+
+                    let esDiaLaborable = true;
+
+                    // Excluir si la fecha ya tiene registros (para no contar días ya cubiertos)
+                    if (fechasUnicas.has(fechaStr)) {
+                        esDiaLaborable = false;
+                    }
+
+                    if (excluirSabados && diaSemana === 6) { // Sábado
+                        esDiaLaborable = false;
+                    }
+                    if (excluirDomingos && diaSemana === 0) { // Domingo
+                        esDiaLaborable = false;
+                    }
+                    if (diasExcluidos.includes(fechaStr)) {
+                        esDiaLaborable = false;
+                    }
+
+                    if (esDiaLaborable) {
+                        diasValidosRestantesCount++;
+                    }
+                    cursorParaDiasValidos.setDate(cursorParaDiasValidos.getDate() + 1);
+                }
+            }
+            diasValidosRestantesSpan.textContent = diasValidosRestantesCount;
+
+            // Promedio de horas/día para cumplir el resto
+            const promedioDiario = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
+            promedioHorasSpan.textContent = promedioDiario.toFixed(2);
+
+            // Renderizar gráficas
+            renderizarGraficaHoras(totalHoras, horasRestantes);
+            renderizarGraficaDiasSemana(horasPorDiaSemana);
+            renderizarGraficaPromedioDiasSemana(horasPorDiaSemana, conteoDiasConRegistro); // Llama a la nueva función de gráfica
+
+            // Renderizar registros recientes
+            renderizarRegistrosRecientes();
+            // Mantener el buscador actualizado con los nuevos datos si hay un término de búsqueda
+            if (searchInput.value.trim() !== '') {
+                performSearch();
+            } else {
+                // Si no hay búsqueda, limpiar la lista de resultados o mostrar el mensaje inicial
+                searchResultsList.innerHTML = '<li class="empty-message">Escribe algo para empezar a buscar.</li>';
+            }
+        }
+
+        // =========================================================================
+        // Funciones para Gráficas (Chart.js)
+        // =========================================================================
+
+        function renderizarGraficaHoras(totalHoras, horasRestantes) {
+            const ctx = document.getElementById('horasChart').getContext('2d');
+
+            if (horasChartInstance) {
+                horasChartInstance.destroy(); // Destruir instancia anterior si existe
+            }
+
+            horasChartInstance = new Chart(ctx, {
+                type: 'doughnut', // Gráfica de pastel/anillo
+                data: {
+                    labels: ['Horas Registradas', 'Horas Restantes'],
+                    datasets: [{
+                        data: [totalHoras, horasRestantes],
+                        backgroundColor: ['#2ecc71', '#e74c3c'], // Verde para registradas, Rojo para restantes
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw.toFixed(1)} hrs`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%', // Para que sea una gráfica de anillo
+                }
+            });
+        }
+
+        function renderizarGraficaDiasSemana(horasPorDiaSemana) {
+            const ctx = document.getElementById('diasSemanaChart').getContext('2d');
+            const labels = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            if (diasSemanaChartInstance) {
+                diasSemanaChartInstance.destroy(); // Destruir instancia anterior si existe
+            }
+
+            diasSemanaChartInstance = new Chart(ctx, {
+                type: 'bar', // Gráfica de barras
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Horas Registradas por Día',
+                        data: horasPorDiaSemana,
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.7)', // Rojo (Domingo)
+                            'rgba(52, 152, 219, 0.7)', // Azul (Lunes)
+                            'rgba(46, 204, 113, 0.7)', // Verde (Martes)
+                            'rgba(155, 89, 182, 0.7)', // Púrpura (Miércoles)
+                            'rgba(241, 196, 15, 0.7)', // Amarillo (Jueves)
+                            'rgba(230, 126, 34, 0.7)', // Naranja (Viernes)
+                            'rgba(52, 73, 94, 0.7)' // Gris oscuro (Sábado)
+                        ],
+                        borderColor: [
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(46, 204, 113, 1)',
+                            'rgba(155, 89, 182, 1)',
+                            'rgba(241, 196, 15, 1)',
+                            'rgba(230, 126, 34, 1)',
+                            'rgba(52, 73, 94, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Horas'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // No mostrar la leyenda de los datasets
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw.toFixed(1)} hrs`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Nueva función para la gráfica de promedio por día de la semana
+        function renderizarGraficaPromedioDiasSemana(horasPorDiaSemana, conteoDiasConRegistro) {
+            const ctx = document.getElementById('promedioDiasSemanaChart').getContext('2d');
+            const labels = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            // Calcular el promedio de horas para cada día de la semana
+            const promedioHorasCalculado = horasPorDiaSemana.map((horas, index) => {
+                return conteoDiasConRegistro[index] > 0 ? (horas / conteoDiasConRegistro[index]).toFixed(2) : 0;
+            });
+
+            if (promedioDiasSemanaChartInstance) {
+                promedioDiasSemanaChartInstance.destroy();
+            }
+
+            promedioDiasSemanaChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Promedio de Horas',
+                        data: promedioHorasCalculado,
+                        backgroundColor: [
+                            'rgba(108, 92, 231, 0.7)', // Un tono púrpura
+                            'rgba(85, 239, 196, 0.7)', // Verde menta
+                            'rgba(0, 184, 148, 0.7)', // Turquesa
+                            'rgba(0, 206, 201, 0.7)', // Azul claro
+                            'rgba(129, 236, 236, 0.7)', // Cian
+                            'rgba(253, 203, 110, 0.7)', // Amarillo pastel
+                            'rgba(255, 127, 80, 0.7)' // Naranja coral
+                        ],
+                        borderColor: [
+                            'rgba(108, 92, 231, 1)',
+                            'rgba(85, 239, 196, 1)',
+                            'rgba(0, 184, 148, 1)',
+                            'rgba(0, 206, 201, 1)',
+                            'rgba(129, 236, 236, 1)',
+                            'rgba(253, 203, 110, 1)',
+                            'rgba(255, 127, 80, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Horas Promedio'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw} hrs`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // =========================================================================
+        // Funciones para Registros Recientes
+        // =========================================================================
+        function renderizarRegistrosRecientes() {
+            // Ordenar todos los registros por fecha (más reciente primero)
+            const registrosOrdenados = [...todosLosRegistros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            // Tomar solo los últimos N registros (N=3 en este caso)
+            const ultimosRegistros = registrosOrdenados.slice(0, 3); // Cambia 3 por 2 si quieres solo 2
+
+            listaRecientesUL.innerHTML = ""; // Limpiar la lista actual
+
+            if (ultimosRegistros.length === 0) {
+                listaRecientesUL.innerHTML = '<li class="empty-message">No hay registros recientes.</li>';
+                return;
+            }
+
+            ultimosRegistros.forEach(registro => {
+                const li = document.createElement("li");
+                li.className = "recent-item";
+
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'short', // Lunes, Mar, etc.
+                    month: 'short', // Jun, Jul, etc.
+                    day: 'numeric' // 10, 12, etc.
+                });
+
+                li.innerHTML = `
+                <div class="recent-details">
+                    <div class="recent-date">${fechaFormateada}</div>
+                    <div class="recent-note">${registro.nota || "Sin descripción"}</div>
+                </div>
+                <div class="recent-hours">${registro.horas.toFixed(1)} hrs</div>
+            `;
+                listaRecientesUL.appendChild(li);
+            });
+        }
+
+        // =========================================================================
+        // Funciones para el Buscador
+        // =========================================================================
+        function performSearch() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            let resultados = [];
+
+            if (searchTerm === '') {
+                searchResultsList.innerHTML = '<li class="empty-message">Escribe algo para empezar a buscar.</li>';
+                return;
+            }
+
+            resultados = todosLosRegistros.filter(registro => {
+                const fecha = registro.fecha.toLowerCase();
+                const horas = registro.horas.toString().toLowerCase(); // Convertir horas a string para buscar
+                const nota = (registro.nota || '').toLowerCase(); // Asegurar que nota no sea null
+
+                return fecha.includes(searchTerm) ||
+                    horas.includes(searchTerm) ||
+                    nota.includes(searchTerm);
+            });
+
+            // Ordenar resultados por fecha (más recientes primero)
+            resultados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            renderSearchResults(resultados);
+        }
+
+        function renderSearchResults(results) {
+            searchResultsList.innerHTML = ""; // Limpiar la lista actual
+
+            if (results.length === 0) {
+                searchResultsList.innerHTML = '<li class="empty-message">No se encontraron registros.</li>';
+                return;
+            }
+
+            results.forEach(registro => {
+                const li = document.createElement("li");
+                li.className = "search-item"; // Usar una clase diferente si se quiere un estilo distinto
+
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                });
+
+                li.innerHTML = `
+                <div class="search-details">
+                    <div class="search-date">${fechaFormateada}</div>
+                    <div class="search-note">${registro.nota || "Sin descripción"}</div>
+                </div>
+                <div class="search-hours">${registro.horas.toFixed(1)} hrs</div>
+            `;
+                searchResultsList.appendChild(li);
+            });
+        }
+
+        // =========================================================================
+        // Event Listeners para el Buscador
+        // =========================================================================
+        searchInput.addEventListener('input', performSearch); // Búsqueda en tiempo real al escribir
+        searchButton.addEventListener('click', performSearch); // Búsqueda al hacer clic en el botón
+
+        clearSearchButton.addEventListener('click', () => {
+            searchInput.value = ''; // Limpiar el input
+            searchResultsList.innerHTML = '<li class="empty-message">Escribe algo para empezar a buscar.</li>'; // Restaurar mensaje
+            // performSearch(); // Opcional: si quieres que se ejecute la búsqueda vacía para resetear
+        });
+
+
+        // =========================================================================
+        // Inicialización
+        // =========================================================================
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Asegurarse de que las tarjetas estén activas
+            document.getElementById('stats-card').classList.add('active');
+            document.getElementById('charts-card').classList.add('active');
+            document.getElementById('recent-records-card').classList.add('active');
+            document.getElementById('search-card').classList.add('active'); // Activar la nueva tarjeta de búsqueda
+
+            // Cargar datos y actualizar la vista cuando la página se carga
+            await cargarDatosDesdeLaNube();
+
+            // Configurar listener para que la UI se actualice si los datos cambian en Firebase
+            registrosRef.on('value', (snapshot) => {
+                const registrosFirebase = snapshot.val() || {};
+                let registrosArray = [];
+                for (let key in registrosFirebase) {
+                    if (registrosFirebase.hasOwnProperty(key)) {
+                        registrosFirebase[key].firebaseKey = key;
+                        registrosArray.push(registrosFirebase[key]);
+                    }
+                }
+                todosLosRegistros = registrosArray;
+                actualizarEstadisticasYGraficas();
+                // performSearch() se llamará dentro de actualizarEstadisticasYGraficas si hay un término
+            });
+
+            configRef.on('value', (snapshot) => {
+                const configFirebase = snapshot.val() || {
+                    excluirSabados: false,
+                    excluirDomingos: false,
+                    diasExcluidos: []
+                };
+                excluirSabados = configFirebase.excluirSabados;
+                excluirDomingos = configFirebase.excluirDomingos;
+                diasExcluidos = configFirebase.diasExcluidos || [];
+                actualizarEstadisticasYGraficas();
+            });
+        });
+    </script>
+</body>
+
+</html>
