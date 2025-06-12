@@ -509,7 +509,12 @@
         let registros = [];
         let diasExcluidos = [];
 
-        const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys5Q6yRwjVSZUufkZV3H2wwPjVn2f6DKY5szX17KTz2Z4KSSIc_1dD0r5a8y25uxLnLQ/exec';
+        // PASO 1: Guarda tu URL original de Google Apps Script en una variable separada
+        const YOUR_ACTUAL_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys5Q6yRwjVSZUufkZV3H2wwPjVn2f6DKY5szX17KTz2Z4KSSIc_1dD0r5a8y25uxLnLQ/exec'; // <--- ¡Asegúrate de que esta sea TU URL de Apps Script!
+
+        // PASO 2: Combina la URL del proxy con tu URL de Apps Script
+        const GOOGLE_APP_SCRIPT_URL = 'https://cors-anywhere.herokuapp.com/' + YOUR_ACTUAL_APP_SCRIPT_URL;
+        
         // Función para formatear fecha a YYYY-MM-DD (local)
         function formatoFechaISO(date) {
             const year = date.getFullYear();
