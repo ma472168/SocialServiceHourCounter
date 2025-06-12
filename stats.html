@@ -223,13 +223,13 @@
             font-size: 1.5rem;
         }
 
-        /* Estilos para la nueva sección "Agregado Recientemente" */
-        .recent-list {
+        /* Estilos para la sección "Agregado Recientemente" y "Buscador" */
+        .recent-list, .search-results-list {
             list-style-type: none;
             padding: 0;
         }
 
-        .recent-item {
+        .recent-item, .search-item {
             padding: 15px;
             border-bottom: 1px solid #eee;
             display: flex;
@@ -239,29 +239,29 @@
             font-size: 0.95rem;
         }
 
-        .recent-item:nth-child(odd) {
+        .recent-item:nth-child(odd), .search-item:nth-child(odd) {
             background-color: #f9f9f9;
         }
 
-        .recent-item:hover {
+        .recent-item:hover, .search-item:hover {
             background-color: #f0f7ff;
         }
 
-        .recent-details {
+        .recent-details, .search-details {
             flex: 1;
         }
 
-        .recent-date {
+        .recent-date, .search-date {
             font-weight: bold;
             color: #2c3e50;
         }
 
-        .recent-note {
+        .recent-note, .search-note {
             color: #7f8c8d;
             margin-top: 5px;
         }
 
-        .recent-hours {
+        .recent-hours, .search-hours {
             font-weight: bold;
             color: #3498db;
             min-width: 60px;
@@ -275,6 +275,43 @@
             font-style: italic;
         }
 
+        /* Estilos para el buscador */
+        .search-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .search-input-group button {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-input-group button:hover {
+            background: #2980b9;
+        }
+
+        .search-input-group button.btn-danger {
+            background: #e74c3c;
+        }
+        .search-input-group button.btn-danger:hover {
+            background: #c0392b;
+        }
+
+
         @media (max-width: 768px) {
             .stats-container {
                 flex-direction: column;
@@ -284,13 +321,16 @@
                 min-width: 100%;
             }
 
-            .recent-item {
+            .recent-item, .search-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 5px;
             }
-            .recent-hours {
+            .recent-hours, .search-hours {
                 text-align: left;
+            }
+            .search-input-group {
+                flex-direction: column;
             }
         }
     </style>
@@ -374,6 +414,22 @@
             </div>
         </div>
 
+        <div class="card" id="search-card">
+            <div class="card-header no-toggle">
+                🔍 Buscar Registros
+            </div>
+            <div class="card-content">
+                <div class="search-input-group">
+                    <input type="text" id="search-input" placeholder="Buscar por fecha, horas o descripción...">
+                    <button id="search-button">Buscar</button>
+                    <button id="clear-search-button" class="btn-danger">Limpiar</button>
+                </div>
+                <ul id="search-results-list" class="search-results-list">
+                    <li class="empty-message">Escribe algo para empezar a buscar.</li>
+                </ul>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -404,6 +460,12 @@
 
         // Referencia para la lista de recientes
         const listaRecientesUL = document.getElementById('lista-recientes');
+
+        // Referencias para el buscador
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const clearSearchButton = document.getElementById('clear-search-button');
+        const searchResultsList = document.getElementById('search-results-list');
 
         // =========================================================================
         // Constantes de Periodo de Servicio Social (copiadas del main.html)
@@ -470,6 +532,7 @@
                 });
 
                 actualizarEstadisticasYGraficas(); // Actualiza la UI con los datos cargados
+                performSearch(); // Actualiza el buscador con los datos cargados (inicialmente vacío)
             } catch (error) {
                 console.error("❌ Error al cargar datos desde Firebase:", error);
                 // No usar alert en esta página para evitar interrupciones visuales
@@ -561,6 +624,13 @@
             
             // Renderizar registros recientes
             renderizarRegistrosRecientes();
+            // Mantener el buscador actualizado con los nuevos datos si hay un término de búsqueda
+            if (searchInput.value.trim() !== '') {
+                performSearch();
+            } else {
+                // Si no hay búsqueda, limpiar la lista de resultados o mostrar el mensaje inicial
+                 searchResultsList.innerHTML = '<li class="empty-message">Escribe algo para empezar a buscar.</li>';
+            }
         }
 
         // =========================================================================
@@ -703,15 +773,86 @@
             });
         }
 
+        // =========================================================================
+        // Funciones para el Buscador
+        // =========================================================================
+        function performSearch() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            let resultados = [];
+
+            if (searchTerm === '') {
+                searchResultsList.innerHTML = '<li class="empty-message">Escribe algo para empezar a buscar.</li>';
+                return;
+            }
+
+            resultados = todosLosRegistros.filter(registro => {
+                const fecha = registro.fecha.toLowerCase();
+                const horas = registro.horas.toString().toLowerCase(); // Convertir horas a string para buscar
+                const nota = (registro.nota || '').toLowerCase(); // Asegurar que nota no sea null
+
+                return fecha.includes(searchTerm) ||
+                       horas.includes(searchTerm) ||
+                       nota.includes(searchTerm);
+            });
+
+            // Ordenar resultados por fecha (más recientes primero)
+            resultados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            renderSearchResults(resultados);
+        }
+
+        function renderSearchResults(results) {
+            searchResultsList.innerHTML = ""; // Limpiar la lista actual
+
+            if (results.length === 0) {
+                searchResultsList.innerHTML = '<li class="empty-message">No se encontraron registros.</li>';
+                return;
+            }
+
+            results.forEach(registro => {
+                const li = document.createElement("li");
+                li.className = "search-item"; // Usar una clase diferente si se quiere un estilo distinto
+
+                const fechaObj = new Date(registro.fecha + 'T00:00:00');
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                });
+
+                li.innerHTML = `
+                    <div class="search-details">
+                        <div class="search-date">${fechaFormateada}</div>
+                        <div class="search-note">${registro.nota || "Sin descripción"}</div>
+                    </div>
+                    <div class="search-hours">${registro.horas.toFixed(1)} hrs</div>
+                `;
+                searchResultsList.appendChild(li);
+            });
+        }
+
+        // =========================================================================
+        // Event Listeners para el Buscador
+        // =========================================================================
+        searchInput.addEventListener('input', performSearch); // Búsqueda en tiempo real al escribir
+        searchButton.addEventListener('click', performSearch); // Búsqueda al hacer clic en el botón
+
+        clearSearchButton.addEventListener('click', () => {
+            searchInput.value = ''; // Limpiar el input
+            searchResultsList.innerHTML = '<li class="empty-message">Escribe algo para empezar a buscar.</li>'; // Restaurar mensaje
+            // performSearch(); // Opcional: si quieres que se ejecute la búsqueda vacía para resetear
+        });
+
 
         // =========================================================================
         // Inicialización
         // =========================================================================
         document.addEventListener("DOMContentLoaded", async () => {
-            // Asegurarse de que las tarjetas de estadísticas y gráficas estén activas
+            // Asegurarse de que las tarjetas estén activas
             document.getElementById('stats-card').classList.add('active');
             document.getElementById('charts-card').classList.add('active');
-            document.getElementById('recent-records-card').classList.add('active'); // Activar la nueva tarjeta
+            document.getElementById('recent-records-card').classList.add('active');
+            document.getElementById('search-card').classList.add('active'); // Activar la nueva tarjeta de búsqueda
 
             // Cargar datos y actualizar la vista cuando la página se carga
             await cargarDatosDesdeLaNube();
@@ -728,6 +869,7 @@
                 }
                 todosLosRegistros = registrosArray;
                 actualizarEstadisticasYGraficas();
+                // performSearch() se llamará dentro de actualizarEstadisticasYGraficas si hay un término
             });
 
             configRef.on('value', (snapshot) => {
