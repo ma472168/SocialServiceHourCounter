@@ -1,0 +1,620 @@
+// =========================================================================
+// Variables Globales y Referencias a Firebase
+// La variable 'database' ya está inicializada en el HTML.
+// =========================================================================
+
+const registrosRef = database.ref('registros'); // Referencia al nodo 'registros' en Firebase
+const configRef = database.ref('config'); // Referencia al nodo 'config' en Firebase
+
+let todosLosRegistros = []; // Almacena los registros cargados de Firebase
+let diasExcluidos = []; // Días específicos a excluir
+let excluirSabados = true; // Por que no ire los fines de semana
+let excluirDomingos = true; // Por que no ire los fines de semana
+
+// === Referencias a elementos del DOM ===
+// Formulario de registro
+const registroForm = document.getElementById('registro-form');
+const fechaInput = document.getElementById('fecha');
+const horasInput = document.getElementById('horas');
+const notaInput = document.getElementById('nota');
+const agregarHorasBtn = document.getElementById('agregarHorasBtn');
+
+// Estadísticas
+const horasRegistradasSpan = document.getElementById('horas-registradas');
+const horasRestantesSpan = document.getElementById('horas-restantes');
+const diasRegistradosSpan = document.getElementById('dias-registrados');
+const promedioHorasSpan = document.getElementById('promedio-horas');
+const diasValidosRestantesSpan = document.getElementById('dias-validos-restantes');
+const porcentajeProgresoSpan = document.getElementById('porcentaje-progreso');
+const barraProgresoDiv = document.getElementById('barra-progreso');
+
+// Registros
+const listaRegistrosUL = document.getElementById('lista-registros');
+const filtroFechaInicio = document.getElementById('filtroFechaInicio');
+const filtroFechaFin = document.getElementById('filtroFechaFin');
+const aplicarFiltroBtn = document.getElementById('aplicarFiltroBtn');
+const limpiarFiltroBtn = document.getElementById('limpiarFiltroBtn');
+
+// Importar/Exportar
+const importarJsonInput = document.getElementById('importar-json');
+
+// Opciones/Exclusiones
+const fechaExcluidaInput = document.getElementById('fecha-excluida');
+const listaExcluidosUL = document.getElementById('lista-excluidos');
+const excluirSabadosCheckbox = document.getElementById('excluir-sabados');
+const excluirDomingosCheckbox = document.getElementById('excluir-domingos');
+
+
+// =========================================================================
+// Constantes de Periodo de Servicio Social
+// =========================================================================
+const HORAS_REQUERIDAS = 500;
+const FECHA_INICIO_SERVICIO = new Date("2025-06-02T00:00:00");
+const FECHA_FIN_SERVICIO = new Date("2025-11-30T23:59:59"); // Incluye todo el último día
+
+// =========================================================================
+// Funciones de utilidad
+// =========================================================================
+
+// Función para formatear fecha a YYYY-MM-DD
+function formatoFechaISO(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Función para obtener fecha sin información de tiempo (inicio del día en UTC)
+function fechaSinHoraUTC(dateString) {
+    // Asegurarse de que la fecha se interprete como UTC
+    const date = new Date(dateString + 'T00:00:00Z');
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+// Toggle para mostrar/ocultar tarjetas
+function toggleCard(card) {
+    card.classList.toggle("active");
+}
+
+// =========================================================================
+// Funciones para Firebase (adaptadas de SocialServiceHourCounter.js anterior)
+// =========================================================================
+
+/**
+ * Carga los datos (registros y configuración) desde Firebase.
+ */
+async function cargarDatosDesdeLaNube() {
+    try {
+        // Cargar registros
+        const registrosSnapshot = await registrosRef.once('value');
+        const registrosFirebase = registrosSnapshot.val() || {};
+        let registrosArray = [];
+
+        for (let key in registrosFirebase) {
+            if (registrosFirebase.hasOwnProperty(key)) {
+                registrosFirebase[key].firebaseKey = key; // Guarda la clave de Firebase
+                registrosArray.push(registrosFirebase[key]);
+            }
+        }
+        todosLosRegistros = registrosArray;
+
+        // Cargar configuración
+        const configSnapshot = await configRef.once('value');
+        const configFirebase = configSnapshot.val() || {
+            excluirSabados: false,
+            excluirDomingos: false,
+            diasExcluidos: []
+        };
+
+        excluirSabados = configFirebase.excluirSabados;
+        excluirDomingos = configFirebase.excluirDomingos;
+        diasExcluidos = configFirebase.diasExcluidos || [];
+
+        // Actualizar checkboxes y input de días excluidos en la UI
+        excluirSabadosCheckbox.checked = excluirSabados;
+        excluirDomingosCheckbox.checked = excluirDomingos;
+
+        console.log("Datos cargados desde Firebase:", {
+            registros: todosLosRegistros,
+            config: configFirebase
+        });
+
+        actualizarVista(); // Actualiza la UI con los datos cargados
+    } catch (error) {
+        console.error("❌ Error al cargar datos desde Firebase:", error);
+        alert("Error al cargar datos. Revisa la consola para más detalles.");
+    }
+}
+
+/**
+ * Guarda todos los datos (registros y configuración) en Firebase.
+ */
+async function guardarDatosEnLaNube() {
+    try {
+        // Para guardar registros, podemos enviarlos como un objeto donde la clave es firebaseKey
+        const registrosObjeto = {};
+        todosLosRegistros.forEach(registro => {
+            // Si el registro ya tiene una firebaseKey, la usamos. Si no, Firebase generará una.
+            // Al usar .set() o .update() con una clave específica, se asegura que no se dupliquen por error de push.
+            const key = registro.firebaseKey;
+            registrosObjeto[key] = {
+                fecha: registro.fecha,
+                horas: registro.horas,
+                nota: registro.nota
+            };
+        });
+
+        // Si el array de registros está vacío, eliminamos el nodo 'registros'.
+        await registrosRef.set(Object.keys(registrosObjeto).length ? registrosObjeto : null);
+
+        // Guardar configuración en su propio nodo
+        await configRef.set({
+            excluirSabados: excluirSabadosCheckbox.checked,
+            excluirDomingos: excluirDomingosCheckbox.checked,
+            diasExcluidos: diasExcluidos
+        });
+
+        console.log("✅ Datos guardados en Firebase correctamente.");
+    } catch (error) {
+        console.error("❌ Error al guardar datos en Firebase:", error);
+        alert("Error al guardar datos. Revisa la consola para más detalles.");
+    }
+}
+
+// =========================================================================
+// Lógica de la Aplicación (adaptada para usar datos de Firebase y la UI existente)
+// =========================================================================
+
+// Manejador principal para el envío del formulario de registro
+const handleFormSubmit = async function (e) {
+    e.preventDefault();
+
+    const fecha = fechaInput.value;
+    const horas = parseFloat(horasInput.value);
+    const nota = notaInput.value.trim();
+
+    if (!fecha || isNaN(horas) || horas <= 0) {
+        alert("❌ Por favor, ingresa una fecha y horas válidas.");
+        return;
+    }
+
+    const fechaMin = FECHA_INICIO_SERVICIO;
+    const fechaMax = FECHA_FIN_SERVICIO; // Ya incluye la hora para abarcar todo el día
+    const fechaSel = fechaSinHoraUTC(fecha); // Usa la función de utilidad para comparar solo el día
+
+    if (fechaSel < fechaMin || fechaSel > fechaMax) {
+        alert(`❌ La fecha debe estar entre el ${formatoFechaISO(fechaMin)} y el ${formatoFechaISO(new Date(FECHA_FIN_SERVICIO.getFullYear(), FECHA_FIN_SERVICIO.getMonth(), FECHA_FIN_SERVICIO.getDate()))}.`);
+        return;
+    }
+
+    const nuevoRegistro = { fecha, horas, nota };
+
+    try {
+        // Genera una nueva clave única para el registro
+        const newRef = registrosRef.push();
+        nuevoRegistro.firebaseKey = newRef.key; // Asigna la clave generada
+        await newRef.set({ fecha, horas, nota }); // Guarda el objeto sin la clave 'firebaseKey' en el valor
+        todosLosRegistros.push(nuevoRegistro); // Añade al array local con la clave
+
+        limpiarFormularioRegistro();
+        actualizarVista(); // Renderiza con todos los registros y aplica filtros
+        alert(`✅ ¡${horas} horas registradas para ${fecha} correctamente!`);
+    } catch (error) {
+        console.error("Error al añadir horas a Firebase:", error);
+        alert("No se pudieron agregar las horas. Revisa la consola.");
+    }
+};
+
+// Limpia los campos del formulario de registro
+function limpiarFormularioRegistro() {
+    fechaInput.value = formatoFechaISO(new Date()); // Restablece a la fecha actual
+    horasInput.value = '';
+    notaInput.value = '';
+
+    // Restaurar el botón a su estado original "Registrar Horas"
+    agregarHorasBtn.textContent = '➕ Registrar Horas';
+    agregarHorasBtn.classList.remove('btn-primary');
+    agregarHorasBtn.classList.add('btn-success');
+    // Asegurarse de que el listener de submit esté activo para nuevos registros
+    // Si el listener fue removido por 'editarRegistro', se re-añade aquí
+    registroForm.removeEventListener('submit', handleFormSubmit); // Evitar duplicados
+    registroForm.addEventListener('submit', handleFormSubmit);
+}
+
+// Exportar datos a JSON (solo de registros)
+function exportarJSON() {
+    if (todosLosRegistros.length === 0) {
+        alert("⚠️ No hay registros para exportar.");
+        return;
+    }
+
+    // Eliminar la clave 'firebaseKey' antes de exportar si no la quieres en el JSON exportado
+    const registrosParaExportar = todosLosRegistros.map(r => {
+        const { firebaseKey, ...rest } = r;
+        return rest;
+    });
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(registrosParaExportar, null, 2));
+    const dl = document.createElement('a');
+    dl.setAttribute("href", dataStr);
+    dl.setAttribute("download", "registros_servicio_social.json");
+    dl.click();
+}
+
+// Importar JSON
+importarJsonInput.addEventListener("change", function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (Array.isArray(data)) {
+                // Limpiar registros existentes en Firebase antes de importar
+                await registrosRef.remove();
+                todosLosRegistros = []; // Limpiar array local
+
+                // Importar cada registro al array local y luego guardar en Firebase
+                for (const item of data) {
+                    const newRef = registrosRef.push();
+                    const newRecord = { ...item, firebaseKey: newRef.key };
+                    await newRef.set(item); // Guarda el objeto sin la clave 'firebaseKey' en el valor
+                    todosLosRegistros.push(newRecord);
+                }
+
+                alert(`✅ ${data.length} registros importados y guardados en la nube!`);
+                actualizarVista();
+            } else {
+                throw new Error("Formato inválido: Se espera un array de registros.");
+            }
+        } catch (error) {
+            console.error("Error al importar JSON:", error);
+            alert("❌ Archivo JSON inválido o error al importar. Por favor, selecciona un archivo válido y revisa la consola.");
+        }
+    };
+    reader.readAsText(file);
+    this.value = ""; // Limpiar input de archivo
+});
+
+// Borrar todos los registros
+async function borrarRegistros() {
+    if (todosLosRegistros.length === 0 && diasExcluidos.length === 0 &&
+        !excluirSabadosCheckbox.checked && !excluirDomingosCheckbox.checked) {
+        alert("ℹ️ No hay datos para borrar.");
+        return;
+    }
+
+    if (confirm("⚠️ ¿Estás seguro de que quieres borrar TODOS los registros y la configuración? Esta acción no se puede deshacer.")) {
+        try {
+            await database.ref('/').remove(); // Elimina todo bajo la raíz de tu base de datos
+            todosLosRegistros = [];
+            diasExcluidos = [];
+            excluirSabadosCheckbox.checked = false;
+            excluirDomingosCheckbox.checked = false;
+
+            actualizarVista();
+            alert("🗑️ Todos los datos (registros y configuración) han sido eliminados de Firebase.");
+        } catch (error) {
+            console.error("Error al borrar todos los datos de Firebase:", error);
+            alert("❌ Hubo un error al borrar los datos. Revisa la consola.");
+        }
+    }
+}
+
+// Agregar fecha excluida
+async function agregarFechaExcluida() {
+    const fecha = fechaExcluidaInput.value;
+
+    if (!fecha) {
+        alert("❌ Por favor, selecciona una fecha.");
+        return;
+    }
+
+    // Convertir la fecha seleccionada a un formato de comparación uniforme (YYYY-MM-DD)
+    const fechaFormatoComparacion = formatoFechaISO(new Date(fecha));
+
+    if (diasExcluidos.includes(fechaFormatoComparacion)) {
+        alert("⚠️ Esta fecha ya está en la lista de días excluidos.");
+        return;
+    }
+
+    const fechaMin = FECHA_INICIO_SERVICIO;
+    const fechaMax = FECHA_FIN_SERVICIO;
+    const fechaSel = fechaSinHoraUTC(fecha);
+
+    if (fechaSel < fechaMin || fechaSel > fechaMax) {
+        alert(`❌ La fecha debe estar entre el ${formatoFechaISO(fechaMin)} y el ${formatoFechaISO(new Date(FECHA_FIN_SERVICIO.getFullYear(), FECHA_FIN_SERVICIO.getMonth(), FECHA_FIN_SERVICIO.getDate()))}.`);
+        return;
+    }
+
+    diasExcluidos.push(fechaFormatoComparacion); // Usar el formato YYYY-MM-DD para almacenar
+    diasExcluidos.sort(); // Mantener ordenado
+    fechaExcluidaInput.value = ""; // Limpiar el input
+
+    await guardarDatosEnLaNube(); // Guardar cambios en Firebase
+    actualizarVista(); // Actualizar la UI
+}
+
+// Eliminar fecha excluida
+async function eliminarFechaExcluida(index) {
+    diasExcluidos.splice(index, 1); // Elimina del array local
+    await guardarDatosEnLaNube(); // Guarda el array actualizado en Firebase
+    actualizarVista(); // Actualiza la UI
+}
+
+// Event listeners para opciones de exclusión de fines de semana
+excluirSabadosCheckbox.addEventListener("change", async function () {
+    excluirSabados = this.checked; // Actualizar la variable global
+    await guardarDatosEnLaNube(); // Guarda el estado del checkbox en Firebase
+    actualizarVista(); // Re-calcula y actualiza la UI
+});
+
+excluirDomingosCheckbox.addEventListener("change", async function () {
+    excluirDomingos = this.checked; // Actualizar la variable global
+    await guardarDatosEnLaNube(); // Guarda el estado del checkbox en Firebase
+    actualizarVista(); // Re-calcula y actualiza la UI
+});
+
+// =========================================================================
+// Renderizado de la UI y Cálculos de Estadísticas
+// =========================================================================
+
+// Actualizar toda la interfaz
+function actualizarVista() {
+    // Actualizar lista de registros (con filtros)
+    let registrosFiltrados = todosLosRegistros;
+    const inicioFiltro = filtroFechaInicio.value;
+    const finFiltro = filtroFechaFin.value;
+
+    if (inicioFiltro) {
+        registrosFiltrados = registrosFiltrados.filter(r => r.fecha >= inicioFiltro);
+    }
+    if (finFiltro) {
+        registrosFiltrados = registrosFiltrados.filter(r => r.fecha <= finFiltro);
+    }
+
+    // Ordenar registros por fecha (más reciente primero)
+    registrosFiltrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    if (registrosFiltrados.length === 0) {
+        listaRegistrosUL.innerHTML = '<li class="empty-message">No hay registros aún. Agrega tu primera entrada usando el formulario.</li>';
+    } else {
+        listaRegistrosUL.innerHTML = "";
+        registrosFiltrados.forEach((registro, index) => {
+            const li = document.createElement("li");
+            li.className = "registro-item";
+
+            const fechaObj = new Date(registro.fecha + 'T00:00:00'); // Asegura la fecha en UTC para evitar problemas de zona horaria
+            const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            li.innerHTML = `
+                        <div class="registro-details">
+                            <div class="registro-date">${fechaFormateada}</div>
+                            <div class="registro-note">${registro.nota || "Sin descripción"}</div>
+                        </div>
+                        <div class="registro-hours">${registro.horas.toFixed(1)} hrs</div>
+                        <div class="action-buttons">
+                            <button class="btn-success" onclick="editarRegistro('${registro.firebaseKey}')">✏️ Editar</button>
+                            <button class="btn-danger" onclick="eliminarRegistro('${registro.firebaseKey}')">🗑️ Eliminar</button>
+                        </div>
+                    `;
+            listaRegistrosUL.appendChild(li);
+        });
+    }
+
+    // Calcular y actualizar estadísticas
+    let totalHoras = 0;
+    const fechasUnicas = new Set();
+    todosLosRegistros.forEach(registro => {
+        totalHoras += parseFloat(registro.horas);
+        fechasUnicas.add(registro.fecha);
+    });
+
+    const hoy = fechaSinHoraUTC(formatoFechaISO(new Date())); // Obtener hoy en formato UTC para comparación consistente
+
+    // Horas registradas
+    horasRegistradasSpan.textContent = totalHoras.toFixed(1);
+
+    // Horas restantes
+    const horasRestantes = Math.max(0, HORAS_REQUERIDAS - totalHoras);
+    horasRestantesSpan.textContent = horasRestantes.toFixed(1);
+
+    // Días registrados
+    diasRegistradosSpan.textContent = fechasUnicas.size;
+
+    // Progreso
+    const progreso = Math.min((totalHoras / HORAS_REQUERIDAS) * 100, 100);
+    barraProgresoDiv.style.width = progreso + "%";
+    barraProgresoDiv.textContent = progreso.toFixed(1) + "%";
+    porcentajeProgresoSpan.textContent = progreso.toFixed(1) + "%";
+
+    // Calcular días válidos restantes
+    let diasValidosRestantesCount = 0;
+    // Iniciar desde el día siguiente a hoy, o desde el inicio del servicio si es futuro
+    let cursorParaDiasValidos = new Date(Math.max(hoy.getTime(), FECHA_INICIO_SERVICIO.getTime()));
+
+    // Ajustar el cursor si ya pasamos la fecha de fin de servicio
+    if (hoy > FECHA_FIN_SERVICIO) {
+        diasValidosRestantesCount = 0;
+    } else {
+        // Iterar hasta la fecha de fin de servicio
+        while (cursorParaDiasValidos <= FECHA_FIN_SERVICIO) {
+            const fechaStr = formatoFechaISO(cursorParaDiasValidos);
+            const diaSemana = cursorParaDiasValidos.getDay(); // 0 = Domingo, 6 = Sábado
+
+            let esDiaLaborable = true;
+
+            // Excluir si la fecha ya tiene registros
+            if (fechasUnicas.has(fechaStr)) {
+                esDiaLaborable = false;
+            }
+
+            if (excluirSabadosCheckbox.checked && diaSemana === 6) { // Sábado
+                esDiaLaborable = false;
+            }
+            if (excluirDomingosCheckbox.checked && diaSemana === 0) { // Domingo
+                esDiaLaborable = false;
+            }
+            if (diasExcluidos.includes(fechaStr)) {
+                esDiaLaborable = false;
+            }
+
+            if (esDiaLaborable) {
+                diasValidosRestantesCount++;
+            }
+            cursorParaDiasValidos.setDate(cursorParaDiasValidos.getDate() + 1);
+        }
+    }
+    diasValidosRestantesSpan.textContent = diasValidosRestantesCount;
+
+    // Promedio de horas/día
+    const promedioDiario = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
+    promedioHorasSpan.textContent = promedioDiario.toFixed(2);
+
+
+    // Actualizar lista de días excluidos
+    actualizarListaExcluidosUI();
+}
+
+// Actualizar lista de días excluidos en la UI
+function actualizarListaExcluidosUI() {
+    if (diasExcluidos.length === 0) {
+        listaExcluidosUL.innerHTML = '<li class="empty-message">No hay días excluidos</li>';
+        return;
+    }
+
+    // Ordenar días excluidos por fecha
+    diasExcluidos.sort();
+
+    listaExcluidosUL.innerHTML = "";
+    diasExcluidos.forEach((fecha, index) => {
+        const li = document.createElement("li");
+        li.className = "excluido-item";
+
+        const fechaObj = new Date(fecha + 'T00:00:00'); // Asegura la fecha en UTC
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        li.innerHTML = `
+                    <span>${fechaFormateada}</span>
+                    <button class="btn-danger" onclick="eliminarFechaExcluida(${index})">Eliminar</button>
+                `;
+        listaExcluidosUL.appendChild(li);
+    });
+}
+
+// Función para editar un registro existente
+function editarRegistro(firebaseKey) {
+    const registroAEditar = todosLosRegistros.find(r => r.firebaseKey === firebaseKey);
+    if (!registroAEditar) return;
+
+    // Rellenar el formulario con los datos del registro a editar
+    fechaInput.value = registroAEditar.fecha;
+    horasInput.value = registroAEditar.horas;
+    notaInput.value = registroAEditar.nota;
+
+    // Asegurar que la tarjeta de formulario esté activa
+    document.getElementById('form-card').classList.add('active');
+
+    // Cambiar el texto y la acción del botón de agregar/guardar
+    agregarHorasBtn.textContent = 'Guardar Cambios';
+    agregarHorasBtn.classList.remove('btn-success');
+    agregarHorasBtn.classList.add('btn-primary');
+
+    // Remueve el listener original del submit para evitar duplicación
+    registroForm.removeEventListener('submit', handleFormSubmit);
+
+    // Añade un listener temporal para guardar cambios en este registro específico
+    const saveEditedRecord = async (event) => {
+        event.preventDefault(); // Previene el submit del formulario
+
+        const fecha = fechaInput.value;
+        const horas = parseFloat(horasInput.value);
+        const nota = notaInput.value.trim();
+
+        if (!fecha || isNaN(horas) || horas <= 0) {
+            alert('Por favor, ingresa una fecha y horas válidas.');
+            return;
+        }
+
+        const fechaMin = FECHA_INICIO_SERVICIO;
+        const fechaMax = FECHA_FIN_SERVICIO;
+        const fechaSel = fechaSinHoraUTC(fecha);
+
+        if (fechaSel < fechaMin || fechaSel > fechaMax) {
+            alert(`❌ La fecha debe estar entre el ${formatoFechaISO(fechaMin)} y el ${formatoFechaISO(new Date(FECHA_FIN_SERVICIO.getFullYear(), FECHA_FIN_SERVICIO.getMonth(), FECHA_FIN_SERVICIO.getDate()))}.`);
+            return;
+        }
+
+        // Actualizar en Firebase
+        try {
+            await registrosRef.child(firebaseKey).update({ fecha, horas, nota });
+
+            // Actualizar el registro en el array local
+            const index = todosLosRegistros.findIndex(r => r.firebaseKey === firebaseKey);
+            if (index !== -1) {
+                todosLosRegistros[index] = { ...todosLosRegistros[index], fecha, horas, nota };
+            }
+
+            alert('Registro actualizado exitosamente.');
+            limpiarFormularioRegistro(); // Esto también restaurará el botón y el listener
+            actualizarVista();
+        } catch (error) {
+            console.error("Error al actualizar registro en Firebase:", error);
+            alert("No se pudo actualizar el registro. Revisa la consola.");
+        }
+    };
+    registroForm.addEventListener('submit', saveEditedRecord); // Añade el nuevo listener
+}
+
+// Función para eliminar un registro
+async function eliminarRegistro(firebaseKey) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este registro?')) {
+        return;
+    }
+    try {
+        await registrosRef.child(firebaseKey).remove(); // Elimina de Firebase
+        todosLosRegistros = todosLosRegistros.filter(r => r.firebaseKey !== firebaseKey); // Elimina del array local
+        actualizarVista();
+        alert('Registro eliminado exitosamente.');
+    } catch (error) {
+        console.error("Error al eliminar registro de Firebase:", error);
+        alert("No se pudo eliminar el registro. Revisa la consola.");
+    }
+}
+
+// Filtro de registros
+aplicarFiltroBtn.addEventListener('click', actualizarVista); // Llama a actualizarVista para aplicar el filtro
+limpiarFiltroBtn.addEventListener('click', () => {
+    filtroFechaInicio.value = '';
+    filtroFechaFin.value = '';
+    actualizarVista(); // Llama a actualizarVista para limpiar el filtro
+});
+
+
+// Inicializar la aplicación
+document.addEventListener("DOMContentLoaded", async () => {
+    // Establecer la fecha actual por defecto en el input de fecha al cargar
+    fechaInput.value = formatoFechaISO(new Date());
+
+    await cargarDatosDesdeLaNube(); // Carga inicial de datos de Firebase
+    // La función actualizarVista() se llama dentro de cargarDatosDesdeLaNube()
+    // así que no necesitamos llamarla aquí de nuevo.
+
+    // Asegurarse de que el listener de submit esté activo (para nuevos registros)
+    registroForm.addEventListener('submit', handleFormSubmit);
+
+    // Expandir las secciones de formulario y estadísticas al inicio
+    document.getElementById('form-card').classList.add('active');
+    document.getElementById('stats-card').classList.add('active');
+});
