@@ -477,6 +477,13 @@ function actualizarVista() {
     const promedioDiario = diasValidosRestantesCount > 0 ? (horasRestantes / diasValidosRestantesCount) : 0;
     promedioHorasSpan.textContent = promedioDiario.toFixed(2);
 
+    // Promedio de horas totales (horas registradas / días con registros)
+    const horasPromedioTotalSpan = document.getElementById('horas-promedio-total');
+    if (horasPromedioTotalSpan) {
+        const promedioHorasTotal = fechasUnicas.size > 0 ? (totalHoras / fechasUnicas.size) : 0;
+        horasPromedioTotalSpan.textContent = promedioHorasTotal.toFixed(1);
+    }
+
 
     // Actualizar lista de días excluidos
     actualizarListaExcluidosUI();
