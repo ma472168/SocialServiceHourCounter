@@ -51,6 +51,9 @@ const searchButton = document.getElementById('search-button');
 const clearSearchButton = document.getElementById('clear-search-button');
 const searchResultsList = document.getElementById('search-results-list');
 
+// Referencia para la lista de días con mayor consumo
+const topDaysListUL = document.getElementById('top-days-list');
+
 // =========================================================================
 // Constantes de Periodo de Servicio Social (copiadas del main.html)
 // =========================================================================
@@ -216,6 +219,8 @@ function actualizarEstadisticasYGraficas() {
 
     // Renderizar registros recientes
     renderizarRegistrosRecientes();
+    // Renderizar días con mayor consumo
+    renderizarDiasConMayorConsumo();
     // Mantener el buscador actualizado con los nuevos datos si hay un término de búsqueda
     if (searchInput.value.trim() !== '') {
         performSearch();
@@ -497,6 +502,66 @@ function renderSearchResults(results) {
                 <div class="search-hours">${registro.horas.toFixed(1)} hrs</div>
             `;
         searchResultsList.appendChild(li);
+    });
+}
+
+// =========================================================================
+// Funciones para Días con Mayor Consumo
+// =========================================================================
+function renderizarDiasConMayorConsumo() {
+    // Agrupar registros por fecha y sumar las horas por día
+    const horasPorDia = {};
+    
+    todosLosRegistros.forEach(registro => {
+        if (horasPorDia[registro.fecha]) {
+            horasPorDia[registro.fecha] += parseFloat(registro.horas);
+        } else {
+            horasPorDia[registro.fecha] = parseFloat(registro.horas);
+        }
+    });
+
+    // Convertir a array y ordenar por horas (mayor a menor)
+    const diasOrdenados = Object.entries(horasPorDia)
+        .map(([fecha, horas]) => ({ fecha, horas }))
+        .sort((a, b) => b.horas - a.horas);
+
+    // Tomar solo los primeros 5 días con más horas
+    const topDias = diasOrdenados.slice(0, 5);
+
+    topDaysListUL.innerHTML = ""; // Limpiar la lista actual
+
+    if (topDias.length === 0) {
+        topDaysListUL.innerHTML = '<li class="empty-message">No hay registros para mostrar.</li>';
+        return;
+    }
+
+    topDias.forEach((dia, index) => {
+        const li = document.createElement("li");
+        li.className = "top-day-item";
+
+        const fechaObj = new Date(dia.fecha + 'T00:00:00');
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+            weekday: 'long', // Lunes, Martes, etc.
+            month: 'long', // Junio, Julio, etc.
+            day: 'numeric' // 10, 12, etc.
+        });
+
+        // Obtener todas las notas de ese día
+        const registrosDelDia = todosLosRegistros.filter(r => r.fecha === dia.fecha);
+        const notas = registrosDelDia.map(r => r.nota).filter(n => n && n.trim() !== '');
+        const notasTexto = notas.length > 0 ? notas.join(' | ') : "Sin descripción";
+
+        const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+
+        li.innerHTML = `
+            <div class="top-day-rank ${rankClass}">${index + 1}</div>
+            <div class="top-day-details">
+                <div class="top-day-date">${fechaFormateada}</div>
+                <div class="top-day-note">${notasTexto}</div>
+            </div>
+            <div class="top-day-hours">${dia.horas.toFixed(1)} hrs</div>
+        `;
+        topDaysListUL.appendChild(li);
     });
 }
 

@@ -415,3 +415,149 @@ button:active {
         flex-direction: column;
     }
 }
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+        color: #e0e0e0;
+    }
+
+    header {
+        border-bottom: 2px solid #5dade2;
+    }
+
+    h1 {
+        color: #e0e0e0;
+    }
+
+    .info-box {
+        background: #244b3c;
+        border-left: 4px solid #58d68d;
+        color: #a9dfbf;
+    }
+
+    .info-box strong {
+        color: #58d68d;
+    }
+
+    .card {
+        background: #2c2c2c;
+        border: 1px solid #444;
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.05);
+    }
+
+    .card-header {
+        background: linear-gradient(to right, #5dade2, #34495e);
+    }
+
+    .card-header:hover {
+        background: linear-gradient(to right, #4a9bd1, #2c3e50);
+    }
+
+    .card-content {
+        background: #2c2c2c;
+    }
+
+    label {
+        color: #e0e0e0;
+    }
+
+    input[type="date"],
+    input[type="number"],
+    input[type="text"],
+    input[type="file"] {
+        background-color: #1e1e1e;
+        border: 1px solid #555;
+        color: #e0e0e0;
+    }
+
+    input:focus {
+        border-color: #5dade2;
+        box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.3);
+    }
+
+    button {
+        background: #5dade2;
+    }
+
+    button:hover {
+        background: #4a9bd1;
+    }
+
+    .btn-danger {
+        background: #ec7063;
+    }
+
+    .btn-danger:hover {
+        background: #e74c3c;
+    }
+
+    .btn-success {
+        background: #58d68d;
+    }
+
+    .btn-success:hover {
+        background: #52c374;
+    }
+
+    .btn-primary {
+        background: #5dade2;
+    }
+
+    .btn-primary:hover {
+        background: #4a9bd1;
+    }
+
+    .registro-item {
+        background-color: #2c2c2c;
+        border-bottom: 1px solid #444;
+    }
+
+    .registro-item:nth-child(odd) {
+        background-color: #333;
+    }
+
+    .registro-item:hover {
+        background-color: #3a3a3a;
+    }
+
+    .registro-date {
+        color: #e0e0e0;
+    }
+
+    .registro-note {
+        color: #aaa;
+    }
+
+    .registro-hours {
+        color: #5dade2;
+    }
+
+    .excluidos-container {
+        background-color: #1e1e1e;
+        border: 1px solid #444;
+    }
+
+    .excluido-item {
+        background: #2c2c2c;
+        border: 1px solid #444;
+    }
+
+    .empty-message {
+        color: #aaa;
+    }
+
+    .highlight {
+        background-color: #3e3e00;
+        color: #e0e0e0;
+    }
+
+    .progress-bar {
+        background: #444;
+        border: 1px solid #555;
+    }
+
+    .progress-inner {
+        background: linear-gradient(90deg, #58d68d, #52c374);
+    }
+}

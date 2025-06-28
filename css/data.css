@@ -234,14 +234,16 @@ header h1 {
 
 /* Recent Records List */
 .recent-list,
-.search-results-list {
+.search-results-list,
+.top-days-list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
 .recent-item,
-.search-item {
+.search-item,
+.top-day-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -251,22 +253,26 @@ header h1 {
 }
 
 .recent-item:last-child,
-.search-item:last-child {
+.search-item:last-child,
+.top-day-item:last-child {
     border-bottom: none;
 }
 
 .recent-item:hover,
-.search-item:hover {
+.search-item:hover,
+.top-day-item:hover {
     background-color: #f9f9f9;
 }
 
 .recent-details,
-.search-details {
+.search-details,
+.top-day-details {
     flex-grow: 1;
 }
 
 .recent-date,
-.search-date {
+.search-date,
+.top-day-date {
     font-weight: bold;
     color: var(--primary-color);
     font-size: 0.9em;
@@ -274,13 +280,15 @@ header h1 {
 }
 
 .recent-note,
-.search-note {
+.search-note,
+.top-day-note {
     color: var(--text-color);
     font-size: 0.95em;
 }
 
 .recent-hours,
-.search-hours {
+.search-hours,
+.top-day-hours {
     font-weight: bold;
     color: var(--secondary-color);
     font-size: 1.1em;
@@ -288,11 +296,31 @@ header h1 {
     flex-shrink: 0;
 }
 
-.empty-message {
-    text-align: center;
-    color: #888;
-    padding: 20px;
-    font-style: italic;
+.top-day-rank {
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.top-day-rank.rank-1 {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.top-day-rank.rank-2 {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.top-day-rank.rank-3 {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
 }
 
 /* Search Bar Styles */
